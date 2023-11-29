@@ -1,0 +1,1606 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A CloudFormation template for Deploying iws-console and Autoscaling targetting EC2 instances.
+Parameters:
+  pApplicationGroup:
+    Description: Amtrak Application Group used in EC2 tags
+    Default: /amtrak/io/zos/ApplicationGroup
+    Type: AWS::SSM::Parameter::Value<String>
+    ConstraintDescription: Application Groups of the EC2 instance.
+  pApplicationSubGroup:
+    Description: Application Sub Group
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/ApplicationSubGroup
+  pProject:
+    Type:  String
+    Description: Project Identifier.
+    Default: zos
+  pDepartment:
+    Type:  String
+    Description: Department Identified
+    Default: io
+  pLandscape:
+    Description: Environment ID
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/aws/account/ENV
+  pCostCenter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/CostCenter
+    Description: CostCenter
+  pFundingSource:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/FundingSource
+    Description: Funding Source.
+  pWBSE:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/WBSE
+    Description: Project WBS ID.
+  pITDR:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/ITDR
+    Description: ITDR number.
+  pEnvironment:
+    Description: Environment
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/aws/account/env-letter
+  pELBType:
+    Type: String
+    Description: Elastic Load Balancer Type.
+    Default: application
+    AllowedValues:
+      - application
+  pCertificateArn:
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/CertificateArn
+    Description: The ARN for the Listener Certificate of the Loadbalancer. Obtain the ARN from Certicate Manager
+  pHTTPListenerPort:
+    Type: String
+    Default: 80
+    Description: HTTP Listner port. Blank out of this parameter if HTTP listener is not required.
+  pOperatorEmail:
+    Description: The email address to notify when there are any scaling activities
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/OperatorEmail
+  pClusterName:
+    Description: The name of the EC2 instance Cluster
+    Type: String
+    Default: AppCluster
+  pInstanceType:
+     Type: String
+     Default: t3a.2xlarge
+     Description: Instance Type
+     AllowedValues: [t3.nano,t3.micro,t3.small,t3.medium,t3.large,t3.xlarge,t3.2xlarge,
+      t3a.nano,t3a.micro,t3a.small,t3a.medium,t3a.large,t3a.xlarge,t3a.2xlarge,
+      m5.large,m5.xlarge,m5.2xlarge,m5.4xlarge,m5.8xlarge,
+      m5a.large,m5a.xlarge,m5a.2xlarge,m5a.4xlarge,m5a.8xlarge,
+      c5.large,c5.xlarge,c5.2xlarge,c5.4xlarge,c5.9xlarge,
+      c5a.large,c5a.xlarge,c5a.2xlarge,c5a.4xlarge,c5a.8xlarge,
+      r5.large,r5.xlarge,r5.2xlarge,r5.4xlarge,r5.8xlarge,
+      r5a.large,r5a.xlarge,r5a.2xlarge,r5a.4xlarge,r5a.8xlarge,r6i.2xlarge,
+      m6a.large,m6a.xlarge,m6a.2xlarge,m6a.4xlarge,m6a.8xlarge,r6a.2xlarge,r6a.xlarge]
+  pKeyName:
+    Description: PEM Key for SSH
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/KeyName-Linux
+    ConstraintDescription: PEM Key for SSH
+  pEc2RootEBSVolumeSize:
+    Description: The volume size, in gibibytes (GiB).
+    Type: String
+    Default: 100
+    ConstraintDescription: This must be valid number
+  pEc2SDBEBSVolumeSize:
+    Description: The volume size, in gibibytes (GiB). /opt
+    Type: String
+    Default: 100
+    ConstraintDescription: This must be valid number
+  pEc2SDFEBSVolumeSize:
+    Description: The volume size, in gibibytes (GiB). Optional Addtional Volumne. Update the size
+    Type: String
+    Default: 0
+    ConstraintDescription: This must be valid number
+  pAdDomainControllerHostName:
+    Description: Amtrak Active Directory Domain Controller hostname
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname
+    ConstraintDescription: Must be a valid Host name
+  pAdDomainControllerHostName1:
+    Description: Amtrak Active Directory Domain Controller hostname
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname1
+    ConstraintDescription: Must be a valid Host name
+  pAdDomainControllerHostName2:
+    Description: Amtrak Active Directory Domain Controller hostname
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname2
+    ConstraintDescription: Must be a valid Host name
+  pAvailabilityZone1:
+    Type: String
+    Description: Availability zone where we need this EC2 to be placed
+    Default: us-east-1a
+    AllowedValues:
+      - us-east-1a
+      - us-east-1b
+      - us-east-1d
+    ConstraintDescription: AWS Availability zone where EC2 instance will be created.
+    
+  pAvailabilityZone2:
+    Type: String
+    Description: Availability zone where we need this EC2 to be placed
+    Default: us-east-1b
+    AllowedValues:
+      - us-east-1a
+      - us-east-1b
+      - us-east-1d
+    ConstraintDescription: AWS Availability zone where EC2 instance will be created.
+  pAvailabilityZone3:
+    Type: String
+    Description: Availability zone where we need this EC2 to be placed
+    Default: us-east-1d
+    AllowedValues:
+      - us-east-1a
+      - us-east-1b
+      - us-east-1d
+    ConstraintDescription: AWS Availability zone where EC2 instance will be created.
+
+  pTargetPort1:
+    Type: String
+    Default: 8080
+    Description: HTTP Target port
+  pHTTPSListenerPort:
+    Type: String
+    Default: 443
+    Description: HTTPS Listner port. Blank out of this parameter if HTTPS listener is not required.
+  pTargetPort2:
+    Type: String
+    Default: 443
+    Description: HTTPS Target group
+  pawsmigrationprojectid:
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/aws-migration-project-id
+    Description: aws-migration-project-id
+  pmapmigrated:
+    Type:  AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/io/zos/map-migrated
+    Description: map-migrated
+  pHostName1:
+    Description: FQDN Hostname of EC2 instance - Mandatory Parameter
+    Type:  String
+  pHostName2:
+    Description: FQDN Hostname of EC2 instance - Mandatory Parameter
+    Type:  String
+  pDBCluster:
+    Description: FQDN Hostname of EC2 instance - Mandatory Parameter
+    Type: String
+    # Default: t1
+    # ConstraintDescription: Host name can not be empty 
+  pAWSregion:
+    Type: String
+    Default: us-east-1
+    Description: AWS region
+  pVPC:
+    Description: vpc id
+    Default: /amtrak/cloud-solutions/vpc
+    Type: AWS::SSM::Parameter::Value<String>
+  pSubnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1a
+    Description: Subnet 1
+  pSubnet2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1b
+    Description: Subnet 2
+  pSubnet3:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1d
+    Description: Subnet 3
+  pInstanceProfileArn:
+      Description: Instance profile ARN
+      Type: AWS::SSM::Parameter::Value<String>
+      Default: /amtrak/io/zos/InstanceRole
+      ConstraintDescription: VPC ID where EC2 instance will be created.
+  pDomainOUPath:
+        default: Custom OU Path
+  pDomainOUPath:
+    Description: Active Directory Custom OU Path. If this is blank, ApplicationGroup/Landscpe hierarchy will be used
+    Type: String
+    Default: ""
+    ConstraintDescription: This must be valid OU Path that exist
+
+Conditions:
+  IsLegacyEnterprise: !Equals [!Ref AWS::AccountId, '128211541887']
+  cIsNonProd: !Or
+    - !Equals
+      - !Ref pLandscape
+      - DEV
+    - !Equals
+      - !Ref pLandscape
+      - TEST
+    - !Equals
+      - !Ref pLandscape
+      - STAGE
+  cIsProd: !Equals
+    - !Ref pLandscape
+    - PROD
+  SDBEBSVolCondtion: !Not [!Equals [!Ref pEc2SDBEBSVolumeSize, 0]]
+  SDFEBSVolCondtion: !Not [!Equals [!Ref pEc2SDFEBSVolumeSize, 0]]
+Mappings:
+  mEC2Map:
+    DEV:
+      VPCId: vpc-0aa9799898d383e32
+      ELBSecurityGroupID: sg-0204c09a532ab86d5
+    TEST:
+      VPCId: vpc-0aa9799898d383e32
+      ELBSecurityGroupID: sg-0204c09a532ab86d5
+    STAGE:
+      VPCId: vpc-0aa9799898d383e32
+      ELBSecurityGroupID: sg-0204c09a532ab86d5
+    PROD:
+      VPCId: vpc-3da5f259
+      ELBSecurityGroupID: sg-097fcc663101c7ce7
+
+  mAzToNonProdSubnetMap:
+    us-east-1a:
+      ELBSubNetId: subnet-04b0e4e3029309669
+    us-east-1b:
+      ELBSubNetId: subnet-095b95dae131c5050
+    us-east-1d:
+      ELBSubNetId: subnet-0597f2c1ab2fc49e9
+    us-east-1e:
+      ELBSubNetId: subnet-66fb9f5b
+  mAzToProdSubnetMap:
+    us-east-1a:
+      ELBSubNetId: subnet-04b0e4e3029309669
+    us-east-1b:
+      ELBSubNetId: subnet-095b95dae131c5050
+    us-east-1d:
+      ELBSubNetId: subnet-0597f2c1ab2fc49e9
+    us-east-1e:
+      ELBSubNetId: subnet-66fb9f5b
+  mEC2MapMulti:
+      DEV:
+        SecurityGroupID: sg-0204c09a532ab86d5
+      TEST:
+        SecurityGroupID: sg-052bc230628713297
+      STAGE:
+        SecurityGroupID: sg-0f1744d9bab3976cd
+      PROD:
+        SecurityGroupID: sg-08333fb0ff915fe2c
+      SharedServices:
+        SecurityGroupID: sg-0556b0be39af3f13f
+Resources:
+  rSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
+      GroupDescription: zos APP Security Group
+      VpcId: !Ref pVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 50100
+          ToPort: 50101
+          Description: "Allow  Traffic for  instance"
+          CidrIp: 10.224.64.0/18
+        - IpProtocol: tcp
+          FromPort: 9443
+          ToPort: 9444
+          Description: "Allow  Traffic for  instance"
+          CidrIp: 10.224.8.0/18
+        - IpProtocol: tcp
+          FromPort: 9443
+          ToPort: 9444
+          Description: "Allow  Traffic for  instance"
+          CidrIp: 10.224.24.0/18
+        # - IpProtocol: tcp
+        #   FromPort: 9443
+        #   ToPort: 9444
+        #   Description: "Allow  Traffic for  instance"
+        #   CidrIp: 10.224.40.0/18
+        - IpProtocol: tcp
+          FromPort: 9443
+          ToPort: 9444
+          Description: "Allow  Traffic for  instance"
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          Description: Allow ssh access
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: '-1'
+          CidrIp: 172.16.0.0/12
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          Description: Allow for ping
+          CidrIp: 10.0.0.0/8
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: ApplicationGroup
+          Value: !Ref pApplicationGroup
+        - Key: ApplicationSubGroup
+          Value: !Ref pApplicationSubGroup
+        - Key: Project
+          Value: !Ref pProject
+        - Key: CostCenter
+          Value: !Ref pCostCenter
+        - Key: FundingSource
+          Value: !Ref pFundingSource
+        - Key: Landscape
+          Value: !Ref pLandscape
+        - Key: ITDR
+          Value: !Ref pITDR
+        - Key: WBSE
+          Value: !Ref pWBSE
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Name
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
+        - Key: aws-migration-project-id
+          Value: !Ref pawsmigrationprojectid
+        - Key: map-migrated
+          Value: !Ref pmapmigrated
+        - Key: !Sub ${pDepartment}-${pProject}aws:cloudformation:stack-name"
+          Value: !Ref "AWS::StackName"
+  rEc2Instance1:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: S3
+          roleName: AmtrakEC2DomainJoinRole
+          buckets:
+            - amtrak-cloud-automation-873043565046-us-east-1
+            - amtappdynamics
+      AWS::CloudFormation::Init:
+        configSets:
+          BootStrap:       # configSet is used when cfn-init is called with -c option
+            - init
+            - install
+            - appdynamics
+        init:
+          files:
+            /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
+              content: !Sub |
+                {
+                      "agent": {
+                              "metrics_collection_interval": 60,
+                              "run_as_user": "root"
+                      },
+                      "metrics": {
+                              "append_dimensions": {
+                                      "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+                                      "ImageId": "${!aws:ImageId}",
+                                      "InstanceId": "${!aws:InstanceId}",
+                                      "InstanceType": "${!aws:InstanceType}"
+                              },
+                              "metrics_collected": {
+                                      "disk": {
+                                              "measurement": [
+                                                      "used_percent"
+                                              ],
+                                              "metrics_collection_interval": 60,
+                                              "resources": [
+                                                      "*"
+                                              ]
+                                      },
+                                      "mem": {
+                                              "measurement": [
+                                                      "mem_used_percent"
+                                              ],
+                                              "metrics_collection_interval": 60
+                                      },
+                                      "statsd": {
+                                              "metrics_aggregation_interval": 60,
+                                              "metrics_collection_interval": 10,
+                                              "service_address": ":8125"
+                                      }
+                              }
+                      }
+                }
+              mode: "000744"
+            /etc/cfn/cfn-hup.conf:
+              content: !Join
+                - ''
+                - - "[main]\n"
+                  - stack=
+                  - !Ref AWS::StackName
+                  - "\n"
+                  - region=
+                  - !Ref AWS::Region
+                  - "\n"
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join
+                - ''
+                - - "[cfn-auto-reloader-hook]\n"
+                  - "triggers=post.update\n"
+                  - "path=Resources.rEc2Instance1.Metadata.AWS::CloudFormation::Init\n"
+                  - 'action=cfn-init.exe -v -c BootStrap -s '
+                  - !Ref AWS::StackId
+                  - ' --resource rEc2Instance1'
+                  - ' --region '
+                  - !Ref AWS::Region
+                  - "\n"
+            /opt/azure-arc.sh:
+              source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
+              authentication: S3AccessCreds
+        install:
+          packages:
+           yum:
+              sssd-client: []
+              sssd: []
+              adcli: []
+              oddjob: []
+              oddjob-mkhomedir: []
+              krb5-workstation: []
+              samba: []
+              git: []
+          sources:
+              #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
+              /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
+
+
+        #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
+        appdynamics:
+          files:
+            /etc/appdynamics/machine-agent/controller-info.xml:
+              content:
+                'Fn::Join':
+                  - "\n"
+                  - - "<controller-info>"
+                    - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
+                    - "   <controller-port>443</controller-port>"
+                    - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
+                    - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
+                    - "   <tier-name>LINUX</tier-name>"
+                    - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName1]
+                    - "   <enable-orchestration>false</enable-orchestration>"
+                    - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName1]
+                    - "   <account-access-key>d951ead9a259</account-access-key>"
+                    - "   <account-name>amtrak</account-name>"
+                    - "   <sim-enabled>true</sim-enabled>"
+                    - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
+                    - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
+                    - "</controller-info>"
+
+              mode: "000744"
+            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
+              content: !Sub |
+                <monitor>
+                  <name>ProcessMonitor</name>
+                  <type>managed</type>
+                  <enabled>true</enabled>
+                  <description>Processes monitor</description>
+                  <monitor-configuration></monitor-configuration>
+                  <monitor-run-task>
+                      <name>Processes Monitor Run Task</name>
+                      <display-name>Processes Monitor Task</display-name>
+                      <description>Processes Monitor Task</description>
+                      <type>java</type>
+                      <execution-style>periodic</execution-style>
+                      <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+                      <execution-timeout-in-secs>60</execution-timeout-in-secs>
+                      <task-arguments>
+                          <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
+                      </task-arguments>
+                      <java-task>
+                          <classpath>process-monitoring-extension.jar</classpath>
+                          <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
+                      </java-task>
+                  </monitor-run-task>
+                </monitor>
+              mode: "000744"
+            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
+              content: !Sub |
+                # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
+                # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
+                # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
+                displayByPid: false
+
+                # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
+                #Example Linux: java,bash,sshd
+                #Example Windows: java.exe,chrome.exe
+                # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
+
+                includeProcesses: []
+                excludeProcesses: []
+
+                # Processes with an aggregated absolute memory consumption of LESS than this number
+                # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
+                memoryThreshold: 5
+
+                # ONLY for OS - WINDOWS
+                # csv.xsl file path - leave null for default location,
+                # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
+                # OR C:/Windows/System32/csv.xsl (32 bit)
+                csvFilePath: ""
+
+                # this is the path to the file .monitored-processes
+                monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
+
+                metricPrefix: "Custom Metrics|"
+              mode: "000744"
+          commands:
+            command-1:
+              command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
+            command-2:
+              command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
+            command-3:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+            command-4:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+            command-5:
+              command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
+          services:
+            sysvinit:
+              appdynamics-machine-agent:
+                enabled: "true"
+                ensureRunning: "true"
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT60M"
+    Properties:
+      InstanceType: !Ref pInstanceType
+      SecurityGroupIds:
+        - !Ref rSecurityGroup
+        # !If
+        #   - IsLegacyEnterprise
+        #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
+        #   - - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ]
+      KeyName: !Ref pKeyName
+      ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
+      #Commented the CPUOptions for demo purposes
+      CpuOptions:
+        CoreCount: 4
+        ThreadsPerCore: 2
+      IamInstanceProfile: AmtrakEC2DomainJoinRole
+      EbsOptimized: True
+      DisableApiTermination: false
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          # Root Volume
+          Ebs:
+            VolumeSize: !Ref pEc2RootEBSVolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+            Encrypted: true
+        - Fn::If:
+          - SDFEBSVolCondtion
+          - DeviceName: "/dev/sdf"
+            Ebs:
+              VolumeSize: !Ref pEc2SDFEBSVolumeSize
+              VolumeType: gp3
+              DeleteOnTermination: true
+              Encrypted: true
+          - Ref: AWS::NoValue
+
+        - Fn::If:
+          - SDBEBSVolCondtion
+          - DeviceName: /dev/sdb
+            Ebs:
+              VolumeType: gp3
+              DeleteOnTermination: false
+              VolumeSize: !Ref pEc2SDBEBSVolumeSize
+              Encrypted: true
+          - Ref: AWS::NoValue
+
+      #SubnetId: !If [NonProd, !FindInMap [ mEC2AzToNonProdSubnetMap, !Ref pAvailabilityZone, SubNetId ], !FindInMap [ mEC2AzToProdSubnetMap, !Ref pAvailabilityZone, SubNetId ]]
+      SubnetId:
+         !If
+          - IsLegacyEnterprise
+          - !If [cIsNonProd, !FindInMap [ mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId ], !FindInMap [ mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId ]]
+          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone1}}}'
+      Tags:
+        - Key: ApplicationGroup
+          Value: !Ref pApplicationGroup
+        - Key: ApplicationSubGroup
+          Value: !Ref pApplicationSubGroup
+        - Key: Project
+          Value: !Ref pProject
+        - Key: CostCenter
+          Value: !Ref pCostCenter
+        - Key: FundingSource
+          Value: !Ref pFundingSource
+        - Key: Landscape
+          Value: !Ref pLandscape
+        - Key: ITDR
+          Value: !Ref pITDR
+        - Key: WBSE
+          Value: !Ref pWBSE
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Name
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}1
+        - Key: aws-migration-project-id
+          Value: !Ref pawsmigrationprojectid
+        - Key: map-migrated
+          Value: !Ref pmapmigrated
+        - Key: !Sub ${pDepartment}-${pProject}aws:cloudformation:stack-name"
+          Value: !Ref "AWS::StackName"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -ex
+          umask 022
+          exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1
+          dnf clean all
+          mkdir ~/tmp
+          cd ~/tmp
+          dnf -y update
+          dnf -y install npm glibc openssl curl openldap-clients nfs-utils
+          dnf -y install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel
+          dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+          dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
+          #dnf -y install python38
+          dnf -y install make
+          wget https://www.python.org/ftp/python/3.7.11/Python-3.7.11.tgz
+          tar xvzf Python-3.7.11.tgz
+          cd Python-3.7.11
+          ./configure --enable-optimizations
+          make altinstall
+          /usr/local/bin/python3.7 --version
+          /usr/local/bin/python3.7 -m pip install --upgrade pip
+
+          #update hostname:
+          hostnamectl set-hostname ${pHostName1}
+
+          # Installing ssm agent
+          dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+          systemctl status amazon-ssm-agent
+          # Installing ssm agent -complete
+
+          # Installing aws cli
+          curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+          unzip awscli-bundle.zip
+          /usr/local/bin/python3.7 awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+          /usr/local/bin/pip3.7 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+          chmod +x /usr/local/aws/bin/aws
+
+          # Installing aws cli -complete
+
+        
+          # Perform domain join steps
+        
+          host=`hostname -s`
+          admin_group=$host"admins"
+          user_group=$host"users"
+          rd_user_group=$host"rdusers"
+
+          ad_service_id_secret=/amtrak/cloud-solutions/active-directory/service-account-name
+          ad_service_id_password_secret=/amtrak/cloud-solutions/active-directory/service-account-password
+          set +x
+          ad_service_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          ad_service_id_password=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_password_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          set -ex
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sudoers
+          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          echo "dyndns_update_ptr = true" >> /etc/sssd/sssd.conf
+          echo $ad_service_id_password
+          echo $ad_service_id
+          set +x
+          echo $ad_service_id_password | kinit $ad_service_id@AMTRAK.AD.NRPC
+          #ldpadd to create child <ApplicationGrouop> ou under OU=NONPROD,OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc
+          
+          landscape=${pLandscape}
+          app_group=${pApplicationGroup}
+          ou=${pDomainOUPath}
+
+          if [ "$ou" = "" ]
+          then
+            full_ou="OU="$app_group",OU="$landscape",OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc"
+          else
+            full_ou=$ou
+          fi
+          echo $full_ou
+
+          echo $ad_service_id_password | adcli join -O $full_ou -U $ad_service_id -S ${pAdDomainControllerHostName1} --os-name=rhel_gnu --os-version=rhel_8.x --verbose --stdin-password
+
+          set -ex
+
+          awsDNSServer2=${pAdDomainControllerHostName1}
+          awsDNSServer1=${pAdDomainControllerHostName2}
+
+          cp /etc/krb5.conf /etc/krb5.conf.bak
+          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/krb5.conf
+          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/krb5.conf
+          cat /etc/krb5.conf
+          cp /etc/sssd/sssd.conf /etc/sssd/sssd.conf.bak
+          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/sssd/sssd.conf
+          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/sssd/sssd.conf
+          echo "ad_server = $awsDNSServer1" >> /etc/sssd/sssd.conf
+          cat  /etc/sssd/sssd.conf
+
+          upper_host=`echo $host | tr '[[:lower:]]' '[[:upper:]]'`
+          echo $upper_host
+
+          # Perform domain join steps - complete
+          
+          #Installing Sentinal agent
+
+          sentinal_key_name=/amtrak/cloud-solutions/azure/sentinal/workspace-key
+          sentinal_id_name=/amtrak/cloud-solutions/azure/sentinal/workspace-id
+          set +x
+          sentinal_key=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_key_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          sentinal_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_id_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+
+          wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w $sentinal_id -s $sentinal_key
+          set -ex
+
+          /opt/microsoft/omsagent/bin/service_control restart $sentinal_id
+          /opt/microsoft/omsagent/bin/omsadmin.sh -l
+          #Installing Sentinal agent - Complete
+
+          #Installing AppDynamics agent
+          #aws s3 cp s3://amtappdynamics/appdynamics-machine-agent-4.5.15.2316.x86_64.rpm /tmp --region ${AWS::Region}host_ip
+          #aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.2.3210.x86_64.rpm /tmp --region ${AWS::Region}
+          /usr/local/bin/aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm /tmp --region ${AWS::Region}
+          rpm -ivh /tmp/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm
+          kinit -k $upper_host$
+          authconfig --enablesssdauth --enablesssd --enablemkhomedir --update
+          systemctl enable sssd.service
+          systemctl restart sssd.service
+          systemctl restart sshd.service
+          systemctl restart sshd
+          klist
+          # Update etc/hosts
+          fqdn_host_name=${pHostName1}
+          #host_ip=$(hostname -i)
+          host_ip=$(wget -q -O- http://169.254.169.254/latest/meta-data/local-ipv4)
+
+          echo "$host_ip $host $fqdn_host_name $host" >> /etc/hosts
+
+          #update /etc/postfix/main.cf
+          sed -i 's/= hostname/'"= $host"'/g' /etc/postfix/main.cf
+
+          #restart postfix service
+          systemctl restart postfix
+          #Install Cloudwatch agent.
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+          rpm -U ./amazon-cloudwatch-agent.rpm
+
+          # # Call cfn-init to perform other additional tasks realted appdynamics ageny
+          cfn-init -v -c BootStrap --stack ${AWS::StackName} --resource rEc2Instance1 --region ${AWS::Region}
+
+
+          chkconfig appdynamics-machine-agent on
+          #Installing AppDynamics agent - Complete
+          #Install Signal Fx for Production landscape only
+          # if [ "$landscape" = "PROD" ]
+          # then
+          #   echo "Installing SignalFx agents"
+          #   signal_fx_token=`aws ssm get-parameter --name "/amtrak/cloud-solutions/service-catalog/ec2/signalfx-token" --output text --query Parameter.Value --region ${AWS::Region}`
+          #   curl -sSL https://dl.signalfx.com/signalfx-agent.sh > ~/signalfx-agent.sh;
+          #   chmod +x ~/signalfx-agent.sh
+          #   ~/signalfx-agent.sh --realm us0 -- $signal_fx_token
+          # fi
+
+          # Change instance role
+          aws_instance_id=`wget -q -O- http://169.254.169.254/latest/meta-data/instance-id`
+          instance_profile_association_id=`/usr/local/bin/aws ec2 describe-iam-instance-profile-associations \
+                        --filters Name=instance-id,Values=$aws_instance_id \
+                        --query IamInstanceProfileAssociations[0].AssociationId \
+                        --region ${AWS::Region} --output text`
+
+          echo $instance_profile_association_id
+          /usr/local/bin/aws ec2 replace-iam-instance-profile-association \
+                      --iam-instance-profile Name=${pInstanceProfileArn} \
+                      --association-id $instance_profile_association_id \
+                      --region ${AWS::Region}
+          dnf update -y 
+          dnf install htop -y
+          param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
+          ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
+          sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
+          
+          dnf clean all
+          EC2_REGION=${pAWSregion}
+          cd ~
+          rm -rf ~/tmp
+          # Start up the cfn-hup daemon to listen for changes to the EC2 metadata\n",
+          cfn-hup || error_exit 'Failed to start cfn-hup'
+           # Signal the status from cfn-init - This is signals Cloudformation template
+          /usr/local/bin/cfn-signal -e $? \
+            --stack ${AWS::StackName} \
+            --resource rEc2Instance1  \
+              --region ${AWS::Region}
+  rEc2Instance2:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: S3
+          roleName: AmtrakEC2DomainJoinRole
+          buckets:
+            - amtrak-cloud-automation-873043565046-us-east-1
+            - amtappdynamics
+      AWS::CloudFormation::Init:
+        configSets:
+          BootStrap:       # configSet is used when cfn-init is called with -c option
+            - init
+            - install
+            - appdynamics
+        init:
+          files:
+            /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
+              content: !Sub |
+                {
+                      "agent": {
+                              "metrics_collection_interval": 60,
+                              "run_as_user": "root"
+                      },
+                      "metrics": {
+                              "append_dimensions": {
+                                      "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+                                      "ImageId": "${!aws:ImageId}",
+                                      "InstanceId": "${!aws:InstanceId}",
+                                      "InstanceType": "${!aws:InstanceType}"
+                              },
+                              "metrics_collected": {
+                                      "disk": {
+                                              "measurement": [
+                                                      "used_percent"
+                                              ],
+                                              "metrics_collection_interval": 60,
+                                              "resources": [
+                                                      "*"
+                                              ]
+                                      },
+                                      "mem": {
+                                              "measurement": [
+                                                      "mem_used_percent"
+                                              ],
+                                              "metrics_collection_interval": 60
+                                      },
+                                      "statsd": {
+                                              "metrics_aggregation_interval": 60,
+                                              "metrics_collection_interval": 10,
+                                              "service_address": ":8125"
+                                      }
+                              }
+                      }
+                }
+              mode: "000744"
+            /etc/cfn/cfn-hup.conf:
+              content: !Join
+                - ''
+                - - "[main]\n"
+                  - stack=
+                  - !Ref AWS::StackName
+                  - "\n"
+                  - region=
+                  - !Ref AWS::Region
+                  - "\n"
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join
+                - ''
+                - - "[cfn-auto-reloader-hook]\n"
+                  - "triggers=post.update\n"
+                  - "path=Resources.rEc2Instance2.Metadata.AWS::CloudFormation::Init\n"
+                  - 'action=cfn-init.exe -v -c BootStrap -s '
+                  - !Ref AWS::StackId
+                  - ' --resource rEc2Instance2'
+                  - ' --region '
+                  - !Ref AWS::Region
+                  - "\n"
+            /opt/azure-arc.sh:
+              source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
+              authentication: S3AccessCreds
+        install:
+          packages:
+           yum:
+              sssd-client: []
+              sssd: []
+              adcli: []
+              oddjob: []
+              oddjob-mkhomedir: []
+              krb5-workstation: []
+              samba: []
+              git: []
+          sources:
+              #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
+              /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
+
+
+        #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
+        appdynamics:
+          files:
+            /etc/appdynamics/machine-agent/controller-info.xml:
+              content:
+                'Fn::Join':
+                  - "\n"
+                  - - "<controller-info>"
+                    - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
+                    - "   <controller-port>443</controller-port>"
+                    - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
+                    - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
+                    - "   <tier-name>LINUX</tier-name>"
+                    - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName2]
+                    - "   <enable-orchestration>false</enable-orchestration>"
+                    - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName2]
+                    - "   <account-access-key>d951ead9a259</account-access-key>"
+                    - "   <account-name>amtrak</account-name>"
+                    - "   <sim-enabled>true</sim-enabled>"
+                    - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
+                    - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
+                    - "</controller-info>"
+
+              mode: "000744"
+            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
+              content: !Sub |
+                <monitor>
+                  <name>ProcessMonitor</name>
+                  <type>managed</type>
+                  <enabled>true</enabled>
+                  <description>Processes monitor</description>
+                  <monitor-configuration></monitor-configuration>
+                  <monitor-run-task>
+                      <name>Processes Monitor Run Task</name>
+                      <display-name>Processes Monitor Task</display-name>
+                      <description>Processes Monitor Task</description>
+                      <type>java</type>
+                      <execution-style>periodic</execution-style>
+                      <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+                      <execution-timeout-in-secs>60</execution-timeout-in-secs>
+                      <task-arguments>
+                          <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
+                      </task-arguments>
+                      <java-task>
+                          <classpath>process-monitoring-extension.jar</classpath>
+                          <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
+                      </java-task>
+                  </monitor-run-task>
+                </monitor>
+              mode: "000744"
+            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
+              content: !Sub |
+                # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
+                # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
+                # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
+                displayByPid: false
+
+                # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
+                #Example Linux: java,bash,sshd
+                #Example Windows: java.exe,chrome.exe
+                # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
+
+                includeProcesses: []
+                excludeProcesses: []
+
+                # Processes with an aggregated absolute memory consumption of LESS than this number
+                # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
+                memoryThreshold: 5
+
+                # ONLY for OS - WINDOWS
+                # csv.xsl file path - leave null for default location,
+                # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
+                # OR C:/Windows/System32/csv.xsl (32 bit)
+                csvFilePath: ""
+
+                # this is the path to the file .monitored-processes
+                monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
+
+                metricPrefix: "Custom Metrics|"
+              mode: "000744"
+          commands:
+            command-1:
+              command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
+            command-2:
+              command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
+            command-3:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+            command-4:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+            command-5:
+              command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
+          services:
+            sysvinit:
+              appdynamics-machine-agent:
+                enabled: "true"
+                ensureRunning: "true"
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT60M"
+    Properties:
+      InstanceType: !Ref pInstanceType
+      SecurityGroupIds:
+        - !Ref rSecurityGroup
+        # !If
+        #   - IsLegacyEnterprise
+        #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
+        #   - - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ]
+      KeyName: !Ref pKeyName
+      ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
+      CpuOptions:
+        CoreCount: 4
+        ThreadsPerCore: 2
+      IamInstanceProfile: AmtrakEC2DomainJoinRole
+      EbsOptimized: True
+      DisableApiTermination: false
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          # Root Volume
+          Ebs:
+            VolumeSize: !Ref pEc2RootEBSVolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+            Encrypted: true
+        - Fn::If:
+          - SDFEBSVolCondtion
+          - DeviceName: "/dev/sdf"
+            #Additional Volume
+            Ebs:
+              VolumeSize: !Ref pEc2SDFEBSVolumeSize
+              VolumeType: gp3
+              DeleteOnTermination: true
+              Encrypted: true
+          - Ref: AWS::NoValue
+
+        - Fn::If:
+          - SDBEBSVolCondtion
+          - DeviceName: /dev/sdb
+            Ebs:
+              VolumeType: gp3
+              DeleteOnTermination: true
+              VolumeSize: !Ref pEc2SDBEBSVolumeSize
+              Encrypted: true
+          - Ref: AWS::NoValue
+
+      #SubnetId: !If [NonProd, !FindInMap [ mEC2AzToNonProdSubnetMap, !Ref pAvailabilityZone, SubNetId ], !FindInMap [ mEC2AzToProdSubnetMap, !Ref pAvailabilityZone, SubNetId ]]
+      SubnetId:
+         !If
+          - IsLegacyEnterprise
+          - !If [cIsNonProd, !FindInMap [ mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId ], !FindInMap [ mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId ]]
+          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone2}}}'
+      Tags:
+        - Key: ApplicationGroup
+          Value: !Ref pApplicationGroup
+        - Key: ApplicationSubGroup
+          Value: !Ref pApplicationSubGroup
+        - Key: Project
+          Value: !Ref pProject
+        - Key: CostCenter
+          Value: !Ref pCostCenter
+        - Key: FundingSource
+          Value: !Ref pFundingSource
+        - Key: Landscape
+          Value: !Ref pLandscape
+        - Key: ITDR
+          Value: !Ref pITDR
+        - Key: WBSE
+          Value: !Ref pWBSE
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Name
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}2
+        - Key: aws-migration-project-id
+          Value: !Ref pawsmigrationprojectid
+        - Key: map-migrated
+          Value: !Ref pmapmigrated
+        - Key: !Sub ${pDepartment}-${pProject}aws:cloudformation:stack-name"
+          Value: !Ref "AWS::StackName"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -ex
+          umask 022
+          exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1
+          dnf clean all
+          mkdir ~/tmp
+          cd ~/tmp
+          dnf -y update
+          dnf -y install npm glibc openssl curl openldap-clients nfs-utils
+          dnf -y install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel
+          dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+          dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
+          #dnf -y install python38
+          dnf -y install make
+          wget https://www.python.org/ftp/python/3.7.11/Python-3.7.11.tgz
+          tar xvzf Python-3.7.11.tgz
+          cd Python-3.7.11
+          ./configure --enable-optimizations
+          make altinstall
+          /usr/local/bin/python3.7 --version
+          /usr/local/bin/python3.7 -m pip install --upgrade pip
+
+          #update hostname:
+          hostnamectl set-hostname ${pHostName2}
+
+          # Installing ssm agent
+          dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+          systemctl status amazon-ssm-agent
+          # Installing ssm agent -complete
+
+          # Installing aws cli
+          curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+          unzip awscli-bundle.zip
+          /usr/local/bin/python3.7 awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+          /usr/local/bin/pip3.7 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+          chmod +x /usr/local/aws/bin/aws
+          
+          # Installing aws cli -complete
+
+          # Perform domain join steps
+
+          host=`hostname -s`
+          admin_group=$host"admins"
+          user_group=$host"users"
+          rd_user_group=$host"rdusers"
+
+          ad_service_id_secret=/amtrak/cloud-solutions/active-directory/service-account-name
+          ad_service_id_password_secret=/amtrak/cloud-solutions/active-directory/service-account-password
+          set +x
+          ad_service_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          ad_service_id_password=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_password_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          set -ex
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/ssh/sshd_config
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/sssd/sssd.conf
+          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sudoers
+          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          echo "dyndns_update_ptr = true" >> /etc/sssd/sssd.conf
+          echo $ad_service_id_password
+          echo $ad_service_id
+          set +x
+          echo $ad_service_id_password | kinit $ad_service_id@AMTRAK.AD.NRPC
+          #ldpadd to create child <ApplicationGrouop> ou under OU=NONPROD,OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc
+          
+          landscape=${pLandscape}
+          app_group=${pApplicationGroup}
+          ou=${pDomainOUPath}
+
+          if [ "$ou" = "" ]
+          then
+            full_ou="OU="$app_group",OU="$landscape",OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc"
+          else
+            full_ou=$ou
+          fi
+          echo $full_ou
+
+          echo $ad_service_id_password | adcli join -O $full_ou -U $ad_service_id -S ${pAdDomainControllerHostName1} --os-name=rhel_gnu --os-version=rhel_8.x --verbose --stdin-password
+
+          set -ex
+
+          awsDNSServer2=${pAdDomainControllerHostName1}
+          awsDNSServer1=${pAdDomainControllerHostName2}
+
+          cp /etc/krb5.conf /etc/krb5.conf.bak
+          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/krb5.conf
+          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/krb5.conf
+          cat /etc/krb5.conf
+          cp /etc/sssd/sssd.conf /etc/sssd/sssd.conf.bak
+          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/sssd/sssd.conf
+          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/sssd/sssd.conf
+          echo "ad_server = $awsDNSServer1" >> /etc/sssd/sssd.conf
+          cat  /etc/sssd/sssd.conf
+
+          upper_host=`echo $host | tr '[[:lower:]]' '[[:upper:]]'`
+          echo $upper_host
+
+          # Perform domain join steps - complete
+
+          #Installing Sentinal agent
+
+          sentinal_key_name=/amtrak/cloud-solutions/azure/sentinal/workspace-key
+          sentinal_id_name=/amtrak/cloud-solutions/azure/sentinal/workspace-id
+          set +x
+          sentinal_key=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_key_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+          sentinal_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_id_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
+
+          wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w $sentinal_id -s $sentinal_key
+          set -ex
+
+          /opt/microsoft/omsagent/bin/service_control restart $sentinal_id
+          /opt/microsoft/omsagent/bin/omsadmin.sh -l
+          #Installing Sentinal agent - Complete
+
+          #Installing AppDynamics agent
+          #aws s3 cp s3://amtappdynamics/appdynamics-machine-agent-4.5.15.2316.x86_64.rpm /tmp --region ${AWS::Region}
+          #aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.2.3210.x86_64.rpm /tmp --region ${AWS::Region}
+          /usr/local/bin/aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm /tmp --region ${AWS::Region}
+          rpm -ivh /tmp/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm
+          kinit -k $upper_host$
+          authconfig --enablesssdauth --enablesssd --enablemkhomedir --update
+          systemctl enable sssd.service
+          systemctl restart sssd.service
+          systemctl restart sshd.service
+          systemctl restart sshd
+          klist
+          # Update etc/hosts
+          fqdn_host_name=${pHostName2}
+          #host_ip=$(hostname -i)
+          host_ip=$(wget -q -O- http://169.254.169.254/latest/meta-data/local-ipv4)
+
+          echo "$host_ip $host $fqdn_host_name $host" >> /etc/hosts
+
+          #update /etc/postfix/main.cf
+          sed -i 's/= hostname/'"= $host"'/g' /etc/postfix/main.cf
+
+          #restart postfix service
+          systemctl restart postfix
+          #Install Cloudwatch agent.
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/redhat/amd64/latest/amazon-cloudwatch-agent.rpm
+          rpm -U ./amazon-cloudwatch-agent.rpm
+
+          # # Call cfn-init to perform other additional tasks realted appdynamics ageny
+          cfn-init -v -c BootStrap --stack ${AWS::StackName} --resource rEc2Instance2 --region ${AWS::Region}
+
+
+          chkconfig appdynamics-machine-agent on
+          #Installing AppDynamics agent - Complete
+          #Install Signal Fx for Production landscape only
+          # if [ "$landscape" = "PROD" ]
+          # then
+          #   echo "Installing SignalFx agents"
+          #   signal_fx_token=`aws ssm get-parameter --name "/amtrak/cloud-solutions/service-catalog/ec2/signalfx-token" --output text --query Parameter.Value --region ${AWS::Region}`
+          #   curl -sSL https://dl.signalfx.com/signalfx-agent.sh > ~/signalfx-agent.sh;
+          #   chmod +x ~/signalfx-agent.sh
+          #   ~/signalfx-agent.sh --realm us0 -- $signal_fx_token
+          # fi
+
+          # Change instance role
+          aws_instance_id=`wget -q -O- http://169.254.169.254/latest/meta-data/instance-id`
+          instance_profile_association_id=`/usr/local/bin/aws ec2 describe-iam-instance-profile-associations \
+                        --filters Name=instance-id,Values=$aws_instance_id \
+                        --query IamInstanceProfileAssociations[0].AssociationId \
+                        --region ${AWS::Region} --output text`
+
+          echo $instance_profile_association_id
+          /usr/local/bin/aws ec2 replace-iam-instance-profile-association \
+                      --iam-instance-profile Name=${pInstanceProfileArn} \
+                      --association-id $instance_profile_association_id \
+                      --region ${AWS::Region}
+          dnf update -y 
+          dnf install htop -y
+          param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
+          ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
+          sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
+          
+          dnf clean all
+          EC2_REGION=${pAWSregion}
+          cd ~
+          rm -rf ~/tmp
+          # Start up the cfn-hup daemon to listen for changes to the EC2 metadata\n",
+          cfn-hup || error_exit 'Failed to start cfn-hup'
+           # Signal the status from cfn-init - This is signals Cloudformation template
+          /usr/local/bin/cfn-signal -e $? \
+            --stack ${AWS::StackName} \
+            --resource rEc2Instance2  \
+              --region ${AWS::Region}
+  rELBLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${pDepartment}-${pProject}-${pLandscape}-ALB-iwsconsole${pDBCluster}
+        
+      Scheme: internal
+      Type: !Ref pELBType
+      Subnets:
+          - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone1}}}'
+          - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
+          - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone3}}}'
+
+      SecurityGroups:
+        - !Ref rSecurityGroup
+      Tags:
+        - Key: ApplicationGroup
+          Value: !Ref pApplicationGroup
+        - Key: ApplicationSubGroup
+          Value: !Ref pApplicationSubGroup
+        - Key: Project
+          Value: !Ref pProject
+        - Key: CostCenter
+          Value: !Ref pCostCenter
+        - Key: FundingSource
+          Value: !Ref pFundingSource
+        - Key: Landscape
+          Value: !Ref pLandscape
+        - Key: ITDR
+          Value: !Ref pITDR
+        - Key: WBSE
+          Value: !Ref pWBSE
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Name
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-ALB-iwsconsole${pDBCluster}
+        - Key: aws-migration-project-id
+          Value: !Ref pawsmigrationprojectid
+        - Key: map-migrated
+          Value: !Ref pmapmigrated
+  rEC2TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}      #-ALB-TG2
+      Port: !Ref pTargetPort1
+      Protocol: HTTP
+      HealthCheckEnabled: true
+      HealthCheckPort: "traffic-port"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      VpcId:
+        !If
+          - IsLegacyEnterprise
+          - !FindInMap [mEC2Map, !Ref pLandscape, VPCId]
+          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/vpc}}'
+      TargetGroupAttributes: 
+              - 
+                Key: "stickiness.enabled"
+                Value: false
+              - 
+                Key: "deregistration_delay.timeout_seconds"
+                Value: "300"
+              - 
+                Key: "stickiness.type"
+                Value: lb_cookie
+              - 
+                Key: "stickiness.lb_cookie.duration_seconds"
+                Value: "30000"
+      Targets:
+        - Id: !Ref rEc2Instance1
+        - Id: !Ref rEc2Instance2
+        # - Id: !Ref rEc2Instance3
+      Tags:
+        - Key: ApplicationGroup
+          Value: !Ref pApplicationGroup
+        - Key: ApplicationSubGroup
+          Value: !Ref pApplicationSubGroup
+        - Key: Project
+          Value: !Ref pProject
+        - Key: CostCenter
+          Value: !Ref pCostCenter
+        - Key: FundingSource
+          Value: !Ref pFundingSource
+        - Key: Landscape
+          Value: !Ref pLandscape
+        - Key: ITDR
+          Value: !Ref pITDR
+        - Key: WBSE
+          Value: !Ref pWBSE
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Name
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}
+        - Key: aws-migration-project-id
+          Value: !Ref pawsmigrationprojectid
+        - Key: map-migrated
+          Value: !Ref pmapmigrated
+
+  rELBHTTPListenerWithForward:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref rELBLoadBalancer
+      Port: !Ref pHTTPListenerPort
+      Protocol: HTTP
+      DefaultActions:
+        - Type: "redirect"
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: !Ref pHTTPSListenerPort
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: "HTTP_301"
+
+  rELBHTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref rELBLoadBalancer
+      Port: !Ref pHTTPSListenerPort
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS-1-2-Ext-2018-06
+      DefaultActions:
+        - TargetGroupArn: !Ref rEC2TargetGroup
+          Type: forward
+      Certificates:
+        - CertificateArn: !Ref pCertificateArn
+  
+  rResourceGroup:
+    Type: "AWS::ResourceGroups::Group"
+    Properties:
+      Name: !Sub ${pDepartment}-${pProject}-${pLandscape}-${pApplicationGroup}-rg-iwsconsole${pDBCluster}
+      Description: "A group that is based on a tag query"
+      ResourceQuery:
+        Type:
+          "TAG_FILTERS_1_0"
+        Query:
+          ResourceTypeFilters:
+            - "AWS::EC2::Instance"
+          TagFilters:
+            - 
+              Key: Name
+              Values: 
+                - !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}1${pEnvironment}
+                - !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}1${pEnvironment}
+  rLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${pDepartment}-${pProject}-${pLandscape}-autoscaling-iwsconsole${pDBCluster}
+      LaunchTemplateData:
+          ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
+          InstanceType: !Ref pInstanceType
+          SecurityGroupIds:
+           - !Ref rSecurityGroup
+          #  - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ] 
+          UserData: !Base64 |
+            #!/bin/bash
+            
+            # Installing ssm agent
+            dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+            systemctl enable amazon-ssm-agent
+            systemctl start amazon-ssm-agent
+            systemctl status amazon-ssm-agent
+            
+            # Installing aws cli
+            curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+            unzip awscli-bundle.zip
+            /usr/local/bin/python3.7 awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+            /usr/local/bin/pip3.7 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
+            chmod +x /usr/local/aws/bin/aws
+            
+            # Installing aws cli -complete
+            
+            # adding public key
+            param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
+            ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
+            sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
+            
+            dnf clean all
+            EC2_REGION=${pAWSregion}
+            cd ~
+            rm -rf ~/tmp
+
+  rAutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    DependsOn:
+      - rAutoScalingSNSTopic
+    Properties:
+      VPCZoneIdentifier: 
+        - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone1}}}'
+        - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
+        - !If
+              - IsLegacyEnterprise
+              - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId]]
+              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone3}}}'
+     
+      LaunchTemplate:
+        LaunchTemplateId: !Ref rLaunchTemplate
+        Version: !GetAtt rLaunchTemplate.LatestVersionNumber
+      MinSize: '1'
+      MaxSize: '1'
+      DesiredCapacity: '1'
+      HealthCheckType: EC2
+      HealthCheckGracePeriod: 300
+      NotificationConfigurations:
+      - TopicARN: !Ref rAutoScalingSNSTopic
+        NotificationTypes:
+        - autoscaling:EC2_INSTANCE_LAUNCH
+        - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+        - autoscaling:EC2_INSTANCE_TERMINATE
+        - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
+        - autoscaling:TEST_NOTIFICATION
+      AvailabilityZones: 
+      - !Ref pAvailabilityZone1
+      - !Ref pAvailabilityZone2
+      - !Ref pAvailabilityZone3
+      TargetGroupARNs:
+        - !Ref rEC2TargetGroup
+      Tags:
+        - Key: Name
+          #Value: !Join ['', [!Ref pDepartment, '-',!Ref pProject, '-',iwsconsole,!Ref pDBCluster]]
+          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}
+          PropagateAtLaunch: false
+        - Key: Department
+          Value: !Ref pDepartment
+          PropagateAtLaunch: true
+        - Key: Project
+          Value: !Ref pProject
+          PropagateAtLaunch: true
+
+        
+  rAutoScalingSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: EC2LaunchNotification
+      Subscription:
+       - Endpoint: !Sub '{{resolve:ssm:/amtrak/io/zos/OperatorEmail}}'
+         Protocol: email
+      Tags:
+        - Key: Department
+          Value: !Ref pDepartment
+        - Key: Project
+          Value: !Ref pProject
+
+  rAutoScalingGroupScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref rAutoScalingGroup
+      PolicyType: SimpleScaling
+      ScalingAdjustment: 1
+      Cooldown: '300'
+      # Tags:
+      #   - Key: Department
+      #     Value: !Ref pDepartment
+      #   - Key: Project
+      #     Value: !Ref pProject
+
+  rCPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pDepartment}-${pProject}-CPUUtilizationAlarm-iwsconsole${pDBCluster}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1 
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: '60'
+      Statistic: Average
+      Threshold: 80  # Scale up when CPU utilization is 80% or more
+      AlarmActions:
+        - !Ref rAutoScalingGroupScaleUpPolicy
+        - !Ref rAutoScalingSNSTopic
+      Dimensions: 
+        - Name: AutoScalingGropuName
+          Value: !Ref rAutoScalingGroup
+      # Tags:
+      #   - Key: Department
+      #     Value: !Ref pDepartment
+      #   - Key: Project
+      #     Value: !Ref pProject
+  
+  rMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pDepartment}-${pProject}-MemoryUtilizationAlarm-iwsconsole${pDBCluster}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: '1' 
+      MetricName: MemoryUtilization
+      Namespace: System/Linux
+      Period: '60'
+      Statistic: Average
+      Threshold: 80  # Scale up when MemoryUtilization is 70% or more
+      AlarmActions:
+        - !Ref rAutoScalingGroupScaleUpPolicy
+        - !Ref rAutoScalingSNSTopic
+      Dimensions: 
+        - Name: AutoScalingGropuName
+          Value: !Ref rAutoScalingGroup
+      # Tags:
+      #   - Key: Department
+      #     Value: !Ref pDepartment
+      #   - Key: Project
+      #     Value: !Ref pProject
+Outputs:
+  CloudFormationLogs:
+    Description: CloudFormation CloudFormationLogs 
+    Value: !Sub 'https://console.aws.com/cloudformation/home?region=${AWS::Region}#/stacks/events?filteringText=${AWS::StackName}'
+  SNSTopicARN:
+    Description: The ARN of the SNS topic for Launch notifiacation
+    Value: !Ref rAutoScalingSNSTopic
