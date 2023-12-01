@@ -48,7 +48,7 @@ pipeline {
                     // Step 2: Use the assumed role credentials to perform AWS actions
                     withAWS(region: awsRegion, accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, sessionToken: sessionToken) {
                         // Your AWS actions go here
-                    sh "aws cloudformation deploy --template-file ${TEMPLATE_FILE} --stack-name ${STACK_NAME} --capabilities CAPABILITY_IAM --region ${AWS_REGION}"
+                    sh "aws cloudformation deploy --template-file ${TEMPLATE_FILE} --stack-name ${STACK_NAME} --capabilities CAPABILITY_IAM --region ${AWS_REGION} --s3-bucket desamist00-869227219142-us-east-1 --s3-prefix cf-templates/v77"
                     //sh 'aws cloudformation delete-stack --stack-name ${STACK_NAME}  --region ${AWS_REGION}'
                     }
                 }

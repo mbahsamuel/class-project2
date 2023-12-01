@@ -135,6 +135,12 @@ pipeline {
 }
 
 
+arn:aws:s3:::desamist00
+
+
+--s3-bucket desamist00-869227219142-us-east-1 --s3-prefix cf-templates/v77
+
+
 
 // these need to be added in test
 // /amtrak/io/zos/vpc
