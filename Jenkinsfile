@@ -1,141 +1,60 @@
-@Library("amtrak")
-
-import com.amtrak.devops.platform.util.AwsUtil
-import com.amtrak.devops.scm.Bitbucket
-
-def STACK_NAME = 'io-zos-create-iwsconsole-cluster-stack'
-
 pipeline {
     agent any
 
+    environment {
+        AWS_REGION = 'us-east-1'  // Specify the AWS region
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        STACK_NAME = 'desamist-tech'  // Specify the CloudFormation stack name
+        TEMPLATE_FILE = 'develop/template.yml'  // Specify the CloudFormation template file
+      //  PARAMETER_FILE = 'parameters.json'  // Specify the CloudFormation parameter file
+    }
+
     stages {
         stage('Checkout') {
-            
-			steps {
-				script {
-					def branchToCheckout
-
-					// Determine the branch to checkout based on the selected branch parameter
-					switch (params.BRANCH) {
-						case 'develop':
-							branchToCheckout = 'develop'
-							break
-						case 'master':
-							branchToCheckout = 'master'
-							break
-						default:
-							error("Invalid branch selection: ${params.BRANCH}")
-					}
-
-					echo "Checking out branch: ${branchToCheckout}"
-
-					// Check out the selected branch
-					checkout([$class: 'GitSCM', branches: [[name: "*/${branchToCheckout}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'io-zos-test-iws-console-repo']],
-					submoduleCfg: [], userRemoteConfigs: [[credentialsId: Bitbucket.BITBUCKET_ORG_CREDENTIALS_ID, 
-					url: 'git@bitbucket.org:amtrak//io-zos-test-iws-console-repo.git']]])
-				}
-			}
-		}
-
-        stage('Build') {
             steps {
-                // Build your application
-                echo 'Building...'
+                git 'https://github.com/mbahsamuel/io-infra-desamist.git'
             }
         }
-
-        stage('STS') {
+        stage('AWS STS Stage') {
             steps {
                 script {
-                    // Determine the Jenkins role based on the selected environment
-                    def jenkinsRole
-                    switch (params.ENVIRONMENT) {
-                         case 'DEV':
-							jenkinsRole = 'arn:aws:iam::128211541887:role/amtrak/io-zos-d-service-role'
-							break
-						case 'TEST':
-							jenkinsRole = 'arn:aws:iam::831280053995:role/amtrak/io-zos-t-service-role'
-							break
-                        case 'STAGE':
-                            jenkinsRole = 'arn:aws:iam::xxxx:role/StageRole'
-                            break
-                        case 'PROD':
-                            jenkinsRole = 'arn:aws:iam::xxxx:role/ProdRole'
-                            break
-                        default:
-                            error("Invalid environment selection: ${params.ENVIRONMENT}")
+                    // Define the AWS region you want to work with
+                    def awsRegion = 'us-east-1'
+
+                    // The role ARN you want to assume in AWS
+                    def roleArn = 'arn:aws:iam::869227219142:role/cloudformation-role'
+
+                    // The session name for your assumed role (can be any unique name)
+                    def sessionName = 'JenkinsAssumedRole'
+
+                    // The name of the Jenkins credentials containing the AWS access key
+                    def awsAccessKeyId = credentials('aws-access-key')
+
+                    // The name of the Jenkins credentials containing the AWS secret key
+                    def awsSecretAccessKey = credentials('aws-secret-key')
+
+                    // Step 1: Get AWS temporary credentials using STS
+                    def stsCredentials = withAWS(region: awsRegion, accessKeyId: awsAccessKeyId, secretAccessKey: awsSecretAccessKey) {
+                        sh "aws sts assume-role --role-arn ${roleArn} --role-session-name ${sessionName} > sts.json"
+                        return readJSON(file: 'sts.json')
                     }
 
-                    echo "Selected environment: ${params.ENVIRONMENT}"
-                    echo "Using Jenkins role: ${jenkinsRole}"
+                    // Extract temporary AWS credentials
+                    def accessKeyId = stsCredentials.Credentials.AccessKeyId
+                    def secretAccessKey = stsCredentials.Credentials.SecretAccessKey
+                    def sessionToken = stsCredentials.Credentials.SessionToken
 
-                    // Assume the Jenkins role using AWSUtil.assumeRole
-                    AwsUtil.assumeRole(this, jenkinsRole, "jenkins-stack", "us-east-1")
+                    // Step 2: Use the assumed role credentials to perform AWS actions
+                    withAWS(region: awsRegion, accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, sessionToken: sessionToken) {
+                        // Your AWS actions go here
+                    sh "aws cloudformation deploy --template-file ${TEMPLATE_FILE} --stack-name ${STACK_NAME} --capabilities CAPABILITY_IAM --region ${AWS_REGION}"
+                    //sh 'aws cloudformation delete-stack --stack-name ${STACK_NAME}  --region ${AWS_REGION}'
+                    }
                 }
             }
         }
 
-        stage('Deploy DEV') {
-            when {
-                expression { params.ENVIRONMENT == 'DEV' }
-            }
-            steps {
-                // Deployment commands for DEV environment
-                echo 'Deploying to DEV environment...'
-                dir('io-zos-test-iws-console-repo/') {
-                    // Install AWS CLI and configure AWS credentials
-
-                    sh 'aws configure set region us-east-1'
-
-                    // Validate the CloudFormation template
-                    // sh "aws cloudformation validate-template --template-body file://cf-template.yaml"
-
-                    // Create or update the CloudFormation stack
-                    // Create or update the CloudFormation stack
-                   sh "aws cloudformation deploy --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --stack-name ${STACK_NAME} --template-file devops/cf-template.yaml --s3-bucket io-zos-dev-d-128211541887-us-east-1 --s3-prefix cf-templates/v77 --parameter-overrides pHostName1=iwsconapp31d.amtrak.ad.nrpc pHostName2=iwsconpp32d.amtrak.ad.nrpc pHostName3=iwsconapp33d.amtrak.ad.nrpc pDBCluster=d3 --region us-east-1"
-                   // sh "aws cloudformation delete-stack --stack-name ${STACK_NAME} --region us-east-1"
-                    
-                }
-            }
-        }
-
-        stage('Deploy TEST') {
-            when {
-                expression { params.ENVIRONMENT == 'TEST' }
-            }
-            steps {
-                // Deployment commands for TEST environment
-                echo 'Deploying to TEST environment...'
-                dir('io-zos-test-iws-console-repo/') {
-                    // Install AWS CLI and configure AWS credentials
-
-                    sh 'aws configure set region us-east-1'
-
-                    // Validate the CloudFormation template
-                    // sh "aws cloudformation validate-template --template-body file://cf-template.yaml"
-                    // Create or update the CloudFormation stack
-                   // sh "aws cloudformation deploy --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --stack-name ${STACK_NAME} --template-file devops/cf-template.yaml --s3-bucket io-zos-t-831280053995-us-east-1 --s3-prefix cf-templates/v77 --parameter-overrides pHostName1=iwsconapp21t.amtrak.ad.nrpc pHostName2=iwsconpp22t.amtrak.ad.nrpc pHostName3=iwsconapp23t.amtrak.ad.nrpc pDBCluster=t2 --region us-east-1"
-                    //sh "aws cloudformation delete-stack --stack-name ${STACK_NAME} --region us-east-1"
-                    //sh "aws cloudformation update-stack --stack-name ${STACK_NAME} --template-body file://devops/cf-template.yaml"
-                    // update the CloudFormation stack
-                    sh """
-                       #Upload the updated CFT to S3
-                       aws s3 cp devops/cf-template.yaml s3://io-zos-t-831280053995-us-east-1/cf-templates/v77/iwscon.yaml --region us-east-1
-                       #Update CFT using the template from s3
-                       aws cloudformation update-stack --stack-name ${STACK_NAME} \
-                       --template-url https://io-zos-t-831280053995-us-east-1.s3.amazonaws.com/cf-templates/v77/iwscon.yaml  \
-                       --region us-east-1 \
-                       --parameters ParameterKey=pHostName1,ParameterValue=iwsconapp21t.amtrak.ad.nrpc ParameterKey=pHostName2,ParameterValue=iwsconapp22t.amtrak.ad.nrpc ParameterKey=pDBCluster,ParameterValue=t2
-                      """
-                   
-                }
-            }
-        }
-    }
+    } 	 	
 }
-
-
-
-// these need to be added in test
-// /amtrak/io/zos/vpc
-// /amtrak/io/zos/InstanceRole
+//sh "aws cloudformation deploy --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --stack-name ${STACK_NAME} --template-file devops/cf-template.yaml --s3-bucket io-zos-dev-d-128211541887-us-east-1 --s3-prefix cf-templates/v77 --parameter-overrides pHostName1=iwsconapp31d.amtrak.ad.nrpc pHostName2=iwsconpp32d.amtrak.ad.nrpc pHostName3=iwsconapp33d.amtrak.ad.nrpc pDBCluster=d3 --region us-east-1"

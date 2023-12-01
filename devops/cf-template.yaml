@@ -2,14 +2,14 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: A CloudFormation template for Deploying iws-console and Autoscaling targetting EC2 instances.
 Parameters:
   pApplicationGroup:
-    Description: Amtrak Application Group used in EC2 tags
-    Default: /amtrak/io/zos/ApplicationGroup
+    Description: Desamist Application Group used in EC2 tags
+    Default: /dsm/io/zos/ApplicationGroup
     Type: AWS::SSM::Parameter::Value<String>
     ConstraintDescription: Application Groups of the EC2 instance.
   pApplicationSubGroup:
     Description: Application Sub Group
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/ApplicationSubGroup
+    Default: /dsm/io/zos/ApplicationSubGroup
   pProject:
     Type:  String
     Description: Project Identifier.
@@ -21,27 +21,27 @@ Parameters:
   pLandscape:
     Description: Environment ID
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/aws/account/ENV
+    Default: /desamist/aws/account/ENV
   pCostCenter:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/CostCenter
+    Default: /desamist/cloud-solutions/CostCenter
     Description: CostCenter
   pFundingSource:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/FundingSource
+    Default: /desamist/cloud-solutions/FundingType
     Description: Funding Source.
   pWBSE:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/WBSE
+    Default: /desamist/io/zos/WBSE
     Description: Project WBS ID.
   pITDR:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/ITDR
+    Default: /desamist/io/zos/ITDR
     Description: ITDR number.
   pEnvironment:
     Description: Environment
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/aws/account/env-letter
+    Default: /desamist/aws/account/env-letter
   pELBType:
     Type: String
     Description: Elastic Load Balancer Type.
@@ -50,7 +50,7 @@ Parameters:
       - application
   pCertificateArn:
     Type:  AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/CertificateArn
+    Default: /desamist/io/zos/CertificateArn
     Description: The ARN for the Listener Certificate of the Loadbalancer. Obtain the ARN from Certicate Manager
   pHTTPListenerPort:
     Type: String
@@ -59,14 +59,14 @@ Parameters:
   pOperatorEmail:
     Description: The email address to notify when there are any scaling activities
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/OperatorEmail
+    Default: /dsm/io/zos/OperatorEmail
   pClusterName:
     Description: The name of the EC2 instance Cluster
     Type: String
     Default: AppCluster
   pInstanceType:
      Type: String
-     Default: t3a.2xlarge
+     Default: t3a.medium
      Description: Instance Type
      AllowedValues: [t3.nano,t3.micro,t3.small,t3.medium,t3.large,t3.xlarge,t3.2xlarge,
       t3a.nano,t3a.micro,t3a.small,t3a.medium,t3a.large,t3a.xlarge,t3a.2xlarge,
@@ -80,7 +80,7 @@ Parameters:
   pKeyName:
     Description: PEM Key for SSH
     Type:  AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/KeyName-Linux
+    Default: /desamist/cloud-solutions/Keyname
     ConstraintDescription: PEM Key for SSH
   pEc2RootEBSVolumeSize:
     Description: The volume size, in gibibytes (GiB).
@@ -97,21 +97,7 @@ Parameters:
     Type: String
     Default: 0
     ConstraintDescription: This must be valid number
-  pAdDomainControllerHostName:
-    Description: Amtrak Active Directory Domain Controller hostname
-    Type:  AWS::SSM::Parameter::Value<String>
-    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname
-    ConstraintDescription: Must be a valid Host name
-  pAdDomainControllerHostName1:
-    Description: Amtrak Active Directory Domain Controller hostname
-    Type:  AWS::SSM::Parameter::Value<String>
-    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname1
-    ConstraintDescription: Must be a valid Host name
-  pAdDomainControllerHostName2:
-    Description: Amtrak Active Directory Domain Controller hostname
-    Type:  AWS::SSM::Parameter::Value<String>
-    Default:  /amtrak/cloud-solutions/service-catalog/ad-domain-controller-hostname2
-    ConstraintDescription: Must be a valid Host name
+
   pAvailabilityZone1:
     Type: String
     Description: Availability zone where we need this EC2 to be placed
@@ -155,11 +141,11 @@ Parameters:
     Description: HTTPS Target group
   pawsmigrationprojectid:
     Type:  AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/aws-migration-project-id
+    Default: /desamist/cloud-solutions/ProjectCode
     Description: aws-migration-project-id
   pmapmigrated:
     Type:  AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/io/zos/map-migrated
+    Default: /desamist/cloud-solutions/MapMigration
     Description: map-migrated
   pHostName1:
     Description: FQDN Hostname of EC2 instance - Mandatory Parameter
@@ -178,27 +164,13 @@ Parameters:
     Description: AWS region
   pVPC:
     Description: vpc id
-    Default: /amtrak/cloud-solutions/vpc
+    Default: /desamist/cloud-solutions/vpc
     Type: AWS::SSM::Parameter::Value<String>
-  pSubnet1:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1a
-    Description: Subnet 1
-  pSubnet2:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1b
-    Description: Subnet 2
-  pSubnet3:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /amtrak/cloud-solutions/service-catalog/ec2/us-east-1d
-    Description: Subnet 3
-  pInstanceProfileArn:
-      Description: Instance profile ARN
-      Type: AWS::SSM::Parameter::Value<String>
-      Default: /amtrak/io/zos/InstanceRole
-      ConstraintDescription: VPC ID where EC2 instance will be created.
-  pDomainOUPath:
-        default: Custom OU Path
+  # pInstanceProfileArn:
+  #     Description: Instance profile ARN
+  #     Type: AWS::SSM::Parameter::Value<String>
+  #     Default: /amtrak/io/zos/InstanceRole
+  #     ConstraintDescription: VPC ID where EC2 instance will be created.
   pDomainOUPath:
     Description: Active Directory Custom OU Path. If this is blank, ApplicationGroup/Landscpe hierarchy will be used
     Type: String
@@ -344,19 +316,19 @@ Resources:
   rEc2Instance1:
     Type: AWS::EC2::Instance
     Metadata:
-      AWS::CloudFormation::Authentication:
-        S3AccessCreds:
-          type: S3
-          roleName: AmtrakEC2DomainJoinRole
-          buckets:
-            - amtrak-cloud-automation-873043565046-us-east-1
-            - amtappdynamics
+      # AWS::CloudFormation::Authentication:
+      #   S3AccessCreds:
+      #     type: S3
+      #     roleName: cloudwatch-ssm-role
+      #     buckets:
+      #       - amtrak-cloud-automation-873043565046-us-east-1
+      #       - amtappdynamics
       AWS::CloudFormation::Init:
         configSets:
           BootStrap:       # configSet is used when cfn-init is called with -c option
             - init
-            - install
-            - appdynamics
+            # - install
+            # - appdynamics
         init:
           files:
             /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
@@ -420,121 +392,121 @@ Resources:
                   - ' --region '
                   - !Ref AWS::Region
                   - "\n"
-            /opt/azure-arc.sh:
-              source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
-              authentication: S3AccessCreds
-        install:
-          packages:
-           yum:
-              sssd-client: []
-              sssd: []
-              adcli: []
-              oddjob: []
-              oddjob-mkhomedir: []
-              krb5-workstation: []
-              samba: []
-              git: []
-          sources:
-              #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
-              /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
+            # /opt/azure-arc.sh:
+            #   source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
+            #   authentication: S3AccessCreds
+        # install:
+        #   packages:
+        #    yum:
+        #       sssd-client: []
+        #       sssd: []
+        #       adcli: []
+        #       oddjob: []
+        #       oddjob-mkhomedir: []
+        #       krb5-workstation: []
+        #       samba: []
+        #       git: []
+        #   sources:
+        #       #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
+        #       /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
 
 
         #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
-        appdynamics:
-          files:
-            /etc/appdynamics/machine-agent/controller-info.xml:
-              content:
-                'Fn::Join':
-                  - "\n"
-                  - - "<controller-info>"
-                    - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
-                    - "   <controller-port>443</controller-port>"
-                    - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
-                    - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
-                    - "   <tier-name>LINUX</tier-name>"
-                    - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName1]
-                    - "   <enable-orchestration>false</enable-orchestration>"
-                    - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName1]
-                    - "   <account-access-key>d951ead9a259</account-access-key>"
-                    - "   <account-name>amtrak</account-name>"
-                    - "   <sim-enabled>true</sim-enabled>"
-                    - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
-                    - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
-                    - "</controller-info>"
+        # appdynamics:
+        #   files:
+        #     /etc/appdynamics/machine-agent/controller-info.xml:
+        #       content:
+        #         'Fn::Join':
+        #           - "\n"
+        #           - - "<controller-info>"
+        #             - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
+        #             - "   <controller-port>443</controller-port>"
+        #             - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
+        #             - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
+        #             - "   <tier-name>LINUX</tier-name>"
+        #             - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName1]
+        #             - "   <enable-orchestration>false</enable-orchestration>"
+        #             - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName1]
+        #             - "   <account-access-key>d951ead9a259</account-access-key>"
+        #             - "   <account-name>amtrak</account-name>"
+        #             - "   <sim-enabled>true</sim-enabled>"
+        #             - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
+        #             - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
+        #             - "</controller-info>"
 
-              mode: "000744"
-            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
-              content: !Sub |
-                <monitor>
-                  <name>ProcessMonitor</name>
-                  <type>managed</type>
-                  <enabled>true</enabled>
-                  <description>Processes monitor</description>
-                  <monitor-configuration></monitor-configuration>
-                  <monitor-run-task>
-                      <name>Processes Monitor Run Task</name>
-                      <display-name>Processes Monitor Task</display-name>
-                      <description>Processes Monitor Task</description>
-                      <type>java</type>
-                      <execution-style>periodic</execution-style>
-                      <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
-                      <execution-timeout-in-secs>60</execution-timeout-in-secs>
-                      <task-arguments>
-                          <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
-                      </task-arguments>
-                      <java-task>
-                          <classpath>process-monitoring-extension.jar</classpath>
-                          <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
-                      </java-task>
-                  </monitor-run-task>
-                </monitor>
-              mode: "000744"
-            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
-              content: !Sub |
-                # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
-                # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
-                # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
-                displayByPid: false
+        #       mode: "000744"
+        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
+        #       content: !Sub |
+        #         <monitor>
+        #           <name>ProcessMonitor</name>
+        #           <type>managed</type>
+        #           <enabled>true</enabled>
+        #           <description>Processes monitor</description>
+        #           <monitor-configuration></monitor-configuration>
+        #           <monitor-run-task>
+        #               <name>Processes Monitor Run Task</name>
+        #               <display-name>Processes Monitor Task</display-name>
+        #               <description>Processes Monitor Task</description>
+        #               <type>java</type>
+        #               <execution-style>periodic</execution-style>
+        #               <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+        #               <execution-timeout-in-secs>60</execution-timeout-in-secs>
+        #               <task-arguments>
+        #                   <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
+        #               </task-arguments>
+        #               <java-task>
+        #                   <classpath>process-monitoring-extension.jar</classpath>
+        #                   <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
+        #               </java-task>
+        #           </monitor-run-task>
+        #         </monitor>
+        #       mode: "000744"
+        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
+        #       content: !Sub |
+        #         # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
+        #         # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
+        #         # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
+        #         displayByPid: false
 
-                # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
-                #Example Linux: java,bash,sshd
-                #Example Windows: java.exe,chrome.exe
-                # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
+        #         # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
+        #         #Example Linux: java,bash,sshd
+        #         #Example Windows: java.exe,chrome.exe
+        #         # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
 
-                includeProcesses: []
-                excludeProcesses: []
+        #         includeProcesses: []
+        #         excludeProcesses: []
 
-                # Processes with an aggregated absolute memory consumption of LESS than this number
-                # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
-                memoryThreshold: 5
+        #         # Processes with an aggregated absolute memory consumption of LESS than this number
+        #         # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
+        #         memoryThreshold: 5
 
-                # ONLY for OS - WINDOWS
-                # csv.xsl file path - leave null for default location,
-                # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
-                # OR C:/Windows/System32/csv.xsl (32 bit)
-                csvFilePath: ""
+        #         # ONLY for OS - WINDOWS
+        #         # csv.xsl file path - leave null for default location,
+        #         # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
+        #         # OR C:/Windows/System32/csv.xsl (32 bit)
+        #         csvFilePath: ""
 
-                # this is the path to the file .monitored-processes
-                monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
+        #         # this is the path to the file .monitored-processes
+        #         monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
 
-                metricPrefix: "Custom Metrics|"
-              mode: "000744"
-          commands:
-            command-1:
-              command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
-            command-2:
-              command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
-            command-3:
-              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
-            command-4:
-              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-            command-5:
-              command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
-          services:
-            sysvinit:
-              appdynamics-machine-agent:
-                enabled: "true"
-                ensureRunning: "true"
+        #         metricPrefix: "Custom Metrics|"
+        #       mode: "000744"
+        #   commands:
+        #     command-1:
+        #       command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
+        #     command-2:
+        #       command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
+        #     command-3:
+        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+        #     command-4:
+        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+        #     command-5:
+        #       command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
+        #   services:
+        #     sysvinit:
+        #       appdynamics-machine-agent:
+        #         enabled: "true"
+        #         ensureRunning: "true"
     CreationPolicy:
       ResourceSignal:
         Count: 1
@@ -548,12 +520,12 @@ Resources:
         #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
         #   - - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ]
       KeyName: !Ref pKeyName
-      ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
+      ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
       #Commented the CPUOptions for demo purposes
-      CpuOptions:
-        CoreCount: 4
-        ThreadsPerCore: 2
-      IamInstanceProfile: AmtrakEC2DomainJoinRole
+      # CpuOptions:
+      #   CoreCount: 4
+      #   ThreadsPerCore: 2
+      IamInstanceProfile: cloudwatch-ssm-role
       EbsOptimized: True
       DisableApiTermination: false
       BlockDeviceMappings:
@@ -589,7 +561,7 @@ Resources:
          !If
           - IsLegacyEnterprise
           - !If [cIsNonProd, !FindInMap [ mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId ], !FindInMap [ mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId ]]
-          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone1}}}'
+          - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone1}}}'
       Tags:
         - Key: ApplicationGroup
           Value: !Ref pApplicationGroup
@@ -627,10 +599,10 @@ Resources:
           mkdir ~/tmp
           cd ~/tmp
           dnf -y update
-          dnf -y install npm glibc openssl curl openldap-clients nfs-utils
+          dnf -y install zip unzip wget npm glibc openssl curl openldap-clients nfs-utils postfix
           dnf -y install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel
           dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
-          dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
+          # dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
           #dnf -y install python38
           dnf -y install make
           wget https://www.python.org/ftp/python/3.7.11/Python-3.7.11.tgz
@@ -660,96 +632,10 @@ Resources:
 
           # Installing aws cli -complete
 
-        
-          # Perform domain join steps
-        
-          host=`hostname -s`
-          admin_group=$host"admins"
-          user_group=$host"users"
-          rd_user_group=$host"rdusers"
 
-          ad_service_id_secret=/amtrak/cloud-solutions/active-directory/service-account-name
-          ad_service_id_password_secret=/amtrak/cloud-solutions/active-directory/service-account-password
-          set +x
-          ad_service_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          ad_service_id_password=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_password_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          set -ex
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sudoers
-          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-          echo "dyndns_update_ptr = true" >> /etc/sssd/sssd.conf
-          echo $ad_service_id_password
-          echo $ad_service_id
-          set +x
-          echo $ad_service_id_password | kinit $ad_service_id@AMTRAK.AD.NRPC
-          #ldpadd to create child <ApplicationGrouop> ou under OU=NONPROD,OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc
-          
-          landscape=${pLandscape}
-          app_group=${pApplicationGroup}
-          ou=${pDomainOUPath}
-
-          if [ "$ou" = "" ]
-          then
-            full_ou="OU="$app_group",OU="$landscape",OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc"
-          else
-            full_ou=$ou
-          fi
-          echo $full_ou
-
-          echo $ad_service_id_password | adcli join -O $full_ou -U $ad_service_id -S ${pAdDomainControllerHostName1} --os-name=rhel_gnu --os-version=rhel_8.x --verbose --stdin-password
-
-          set -ex
-
-          awsDNSServer2=${pAdDomainControllerHostName1}
-          awsDNSServer1=${pAdDomainControllerHostName2}
-
-          cp /etc/krb5.conf /etc/krb5.conf.bak
-          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/krb5.conf
-          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/krb5.conf
-          cat /etc/krb5.conf
-          cp /etc/sssd/sssd.conf /etc/sssd/sssd.conf.bak
-          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/sssd/sssd.conf
-          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/sssd/sssd.conf
-          echo "ad_server = $awsDNSServer1" >> /etc/sssd/sssd.conf
-          cat  /etc/sssd/sssd.conf
-
-          upper_host=`echo $host | tr '[[:lower:]]' '[[:upper:]]'`
-          echo $upper_host
-
-          # Perform domain join steps - complete
-          
-          #Installing Sentinal agent
-
-          sentinal_key_name=/amtrak/cloud-solutions/azure/sentinal/workspace-key
-          sentinal_id_name=/amtrak/cloud-solutions/azure/sentinal/workspace-id
-          set +x
-          sentinal_key=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_key_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          sentinal_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_id_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-
-          wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w $sentinal_id -s $sentinal_key
-          set -ex
-
-          /opt/microsoft/omsagent/bin/service_control restart $sentinal_id
-          /opt/microsoft/omsagent/bin/omsadmin.sh -l
-          #Installing Sentinal agent - Complete
-
-          #Installing AppDynamics agent
-          #aws s3 cp s3://amtappdynamics/appdynamics-machine-agent-4.5.15.2316.x86_64.rpm /tmp --region ${AWS::Region}host_ip
-          #aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.2.3210.x86_64.rpm /tmp --region ${AWS::Region}
-          /usr/local/bin/aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm /tmp --region ${AWS::Region}
-          rpm -ivh /tmp/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm
-          kinit -k $upper_host$
-          authconfig --enablesssdauth --enablesssd --enablemkhomedir --update
-          systemctl enable sssd.service
-          systemctl restart sssd.service
+    
           systemctl restart sshd.service
           systemctl restart sshd
-          klist
           # Update etc/hosts
           fqdn_host_name=${pHostName1}
           #host_ip=$(hostname -i)
@@ -770,7 +656,6 @@ Resources:
           cfn-init -v -c BootStrap --stack ${AWS::StackName} --resource rEc2Instance1 --region ${AWS::Region}
 
 
-          chkconfig appdynamics-machine-agent on
           #Installing AppDynamics agent - Complete
           #Install Signal Fx for Production landscape only
           # if [ "$landscape" = "PROD" ]
@@ -782,23 +667,8 @@ Resources:
           #   ~/signalfx-agent.sh --realm us0 -- $signal_fx_token
           # fi
 
-          # Change instance role
-          aws_instance_id=`wget -q -O- http://169.254.169.254/latest/meta-data/instance-id`
-          instance_profile_association_id=`/usr/local/bin/aws ec2 describe-iam-instance-profile-associations \
-                        --filters Name=instance-id,Values=$aws_instance_id \
-                        --query IamInstanceProfileAssociations[0].AssociationId \
-                        --region ${AWS::Region} --output text`
-
-          echo $instance_profile_association_id
-          /usr/local/bin/aws ec2 replace-iam-instance-profile-association \
-                      --iam-instance-profile Name=${pInstanceProfileArn} \
-                      --association-id $instance_profile_association_id \
-                      --region ${AWS::Region}
           dnf update -y 
           dnf install htop -y
-          param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
-          ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
-          sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
           
           dnf clean all
           EC2_REGION=${pAWSregion}
@@ -814,19 +684,19 @@ Resources:
   rEc2Instance2:
     Type: AWS::EC2::Instance
     Metadata:
-      AWS::CloudFormation::Authentication:
-        S3AccessCreds:
-          type: S3
-          roleName: AmtrakEC2DomainJoinRole
-          buckets:
-            - amtrak-cloud-automation-873043565046-us-east-1
-            - amtappdynamics
+      # AWS::CloudFormation::Authentication:
+      #   S3AccessCreds:
+      #     type: S3
+      #     roleName: cloudwatch-ssm-role
+      #     buckets:
+      #       - amtrak-cloud-automation-873043565046-us-east-1
+      #       - amtappdynamics
       AWS::CloudFormation::Init:
         configSets:
           BootStrap:       # configSet is used when cfn-init is called with -c option
             - init
-            - install
-            - appdynamics
+            # - install
+            # - appdynamics
         init:
           files:
             /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
@@ -890,121 +760,121 @@ Resources:
                   - ' --region '
                   - !Ref AWS::Region
                   - "\n"
-            /opt/azure-arc.sh:
-              source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
-              authentication: S3AccessCreds
-        install:
-          packages:
-           yum:
-              sssd-client: []
-              sssd: []
-              adcli: []
-              oddjob: []
-              oddjob-mkhomedir: []
-              krb5-workstation: []
-              samba: []
-              git: []
-          sources:
-              #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
-              /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
+            # /opt/azure-arc.sh:
+            #   source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
+            #   authentication: S3AccessCreds
+        # install:
+        #   packages:
+        #    yum:
+        #       sssd-client: []
+        #       sssd: []
+        #       adcli: []
+        #       oddjob: []
+        #       oddjob-mkhomedir: []
+        #       krb5-workstation: []
+        #       samba: []
+        #       git: []
+        #   sources:
+        #       #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
+        #       /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
 
 
-        #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
-        appdynamics:
-          files:
-            /etc/appdynamics/machine-agent/controller-info.xml:
-              content:
-                'Fn::Join':
-                  - "\n"
-                  - - "<controller-info>"
-                    - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
-                    - "   <controller-port>443</controller-port>"
-                    - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
-                    - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
-                    - "   <tier-name>LINUX</tier-name>"
-                    - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName2]
-                    - "   <enable-orchestration>false</enable-orchestration>"
-                    - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName2]
-                    - "   <account-access-key>d951ead9a259</account-access-key>"
-                    - "   <account-name>amtrak</account-name>"
-                    - "   <sim-enabled>true</sim-enabled>"
-                    - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
-                    - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
-                    - "</controller-info>"
+        # #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
+        # appdynamics:
+        #   files:
+        #     /etc/appdynamics/machine-agent/controller-info.xml:
+        #       content:
+        #         'Fn::Join':
+        #           - "\n"
+        #           - - "<controller-info>"
+        #             - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
+        #             - "   <controller-port>443</controller-port>"
+        #             - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
+        #             - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
+        #             - "   <tier-name>LINUX</tier-name>"
+        #             - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName2]
+        #             - "   <enable-orchestration>false</enable-orchestration>"
+        #             - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName2]
+        #             - "   <account-access-key>d951ead9a259</account-access-key>"
+        #             - "   <account-name>amtrak</account-name>"
+        #             - "   <sim-enabled>true</sim-enabled>"
+        #             - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
+        #             - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
+        #             - "</controller-info>"
 
-              mode: "000744"
-            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
-              content: !Sub |
-                <monitor>
-                  <name>ProcessMonitor</name>
-                  <type>managed</type>
-                  <enabled>true</enabled>
-                  <description>Processes monitor</description>
-                  <monitor-configuration></monitor-configuration>
-                  <monitor-run-task>
-                      <name>Processes Monitor Run Task</name>
-                      <display-name>Processes Monitor Task</display-name>
-                      <description>Processes Monitor Task</description>
-                      <type>java</type>
-                      <execution-style>periodic</execution-style>
-                      <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
-                      <execution-timeout-in-secs>60</execution-timeout-in-secs>
-                      <task-arguments>
-                          <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
-                      </task-arguments>
-                      <java-task>
-                          <classpath>process-monitoring-extension.jar</classpath>
-                          <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
-                      </java-task>
-                  </monitor-run-task>
-                </monitor>
-              mode: "000744"
-            /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
-              content: !Sub |
-                # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
-                # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
-                # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
-                displayByPid: false
+        #       mode: "000744"
+        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
+        #       content: !Sub |
+        #         <monitor>
+        #           <name>ProcessMonitor</name>
+        #           <type>managed</type>
+        #           <enabled>true</enabled>
+        #           <description>Processes monitor</description>
+        #           <monitor-configuration></monitor-configuration>
+        #           <monitor-run-task>
+        #               <name>Processes Monitor Run Task</name>
+        #               <display-name>Processes Monitor Task</display-name>
+        #               <description>Processes Monitor Task</description>
+        #               <type>java</type>
+        #               <execution-style>periodic</execution-style>
+        #               <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+        #               <execution-timeout-in-secs>60</execution-timeout-in-secs>
+        #               <task-arguments>
+        #                   <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
+        #               </task-arguments>
+        #               <java-task>
+        #                   <classpath>process-monitoring-extension.jar</classpath>
+        #                   <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
+        #               </java-task>
+        #           </monitor-run-task>
+        #         </monitor>
+        #       mode: "000744"
+        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
+        #       content: !Sub |
+        #         # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
+        #         # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
+        #         # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
+        #         displayByPid: false
 
-                # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
-                #Example Linux: java,bash,sshd
-                #Example Windows: java.exe,chrome.exe
-                # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
+        #         # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
+        #         #Example Linux: java,bash,sshd
+        #         #Example Windows: java.exe,chrome.exe
+        #         # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
 
-                includeProcesses: []
-                excludeProcesses: []
+        #         includeProcesses: []
+        #         excludeProcesses: []
 
-                # Processes with an aggregated absolute memory consumption of LESS than this number
-                # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
-                memoryThreshold: 5
+        #         # Processes with an aggregated absolute memory consumption of LESS than this number
+        #         # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
+        #         memoryThreshold: 5
 
-                # ONLY for OS - WINDOWS
-                # csv.xsl file path - leave null for default location,
-                # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
-                # OR C:/Windows/System32/csv.xsl (32 bit)
-                csvFilePath: ""
+        #         # ONLY for OS - WINDOWS
+        #         # csv.xsl file path - leave null for default location,
+        #         # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
+        #         # OR C:/Windows/System32/csv.xsl (32 bit)
+        #         csvFilePath: ""
 
-                # this is the path to the file .monitored-processes
-                monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
+        #         # this is the path to the file .monitored-processes
+        #         monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
 
-                metricPrefix: "Custom Metrics|"
-              mode: "000744"
-          commands:
-            command-1:
-              command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
-            command-2:
-              command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
-            command-3:
-              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
-            command-4:
-              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-            command-5:
-              command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
-          services:
-            sysvinit:
-              appdynamics-machine-agent:
-                enabled: "true"
-                ensureRunning: "true"
+        #         metricPrefix: "Custom Metrics|"
+        #       mode: "000744"
+        #   commands:
+        #     command-1:
+        #       command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
+        #     command-2:
+        #       command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
+        #     command-3:
+        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+        #     command-4:
+        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+        #     command-5:
+        #       command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
+        #   services:
+        #     sysvinit:
+        #       appdynamics-machine-agent:
+        #         enabled: "true"
+        #         ensureRunning: "true"
     CreationPolicy:
       ResourceSignal:
         Count: 1
@@ -1018,11 +888,11 @@ Resources:
         #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
         #   - - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ]
       KeyName: !Ref pKeyName
-      ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
-      CpuOptions:
-        CoreCount: 4
-        ThreadsPerCore: 2
-      IamInstanceProfile: AmtrakEC2DomainJoinRole
+      ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
+      # CpuOptions:
+      #   CoreCount: 4
+      #   ThreadsPerCore: 2
+      IamInstanceProfile: cloudwatch-ssm-role
       EbsOptimized: True
       DisableApiTermination: false
       BlockDeviceMappings:
@@ -1059,7 +929,7 @@ Resources:
          !If
           - IsLegacyEnterprise
           - !If [cIsNonProd, !FindInMap [ mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId ], !FindInMap [ mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId ]]
-          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone2}}}'
+          - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone2}}}'
       Tags:
         - Key: ApplicationGroup
           Value: !Ref pApplicationGroup
@@ -1097,10 +967,10 @@ Resources:
           mkdir ~/tmp
           cd ~/tmp
           dnf -y update
-          dnf -y install npm glibc openssl curl openldap-clients nfs-utils
+          dnf -y install zip unzip wget npm glibc openssl curl openldap-clients nfs-utils postfix
           dnf -y install gcc openssl-devel bzip2-devel libffi-devel zlib-devel xz-devel
           dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
-          dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
+          # dnf config-manager --set-enabled codeready-builder-for-rhel-8-rhui-rpms
           #dnf -y install python38
           dnf -y install make
           wget https://www.python.org/ftp/python/3.7.11/Python-3.7.11.tgz
@@ -1130,101 +1000,14 @@ Resources:
           
           # Installing aws cli -complete
 
-          # Perform domain join steps
-
-          host=`hostname -s`
-          admin_group=$host"admins"
-          user_group=$host"users"
-          rd_user_group=$host"rdusers"
-
-          ad_service_id_secret=/amtrak/cloud-solutions/active-directory/service-account-name
-          ad_service_id_password_secret=/amtrak/cloud-solutions/active-directory/service-account-password
-          set +x
-          ad_service_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          ad_service_id_password=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $ad_service_id_password_secret --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          set -ex
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/ssh/sshd_config
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnameusers/'"$user_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnamerdusers/'"$rd_user_group"'/g' /etc/sssd/sssd.conf
-          sed -i 's/hostnameadmins/'"$admin_group"'/g' /etc/sudoers
-          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-          echo "dyndns_update_ptr = true" >> /etc/sssd/sssd.conf
-          echo $ad_service_id_password
-          echo $ad_service_id
-          set +x
-          echo $ad_service_id_password | kinit $ad_service_id@AMTRAK.AD.NRPC
-          #ldpadd to create child <ApplicationGrouop> ou under OU=NONPROD,OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc
-          
-          landscape=${pLandscape}
-          app_group=${pApplicationGroup}
-          ou=${pDomainOUPath}
-
-          if [ "$ou" = "" ]
-          then
-            full_ou="OU="$app_group",OU="$landscape",OU=LinuxServers,OU=Amazon,DC=amtrak,DC=ad,DC=nrpc"
-          else
-            full_ou=$ou
-          fi
-          echo $full_ou
-
-          echo $ad_service_id_password | adcli join -O $full_ou -U $ad_service_id -S ${pAdDomainControllerHostName1} --os-name=rhel_gnu --os-version=rhel_8.x --verbose --stdin-password
-
-          set -ex
-
-          awsDNSServer2=${pAdDomainControllerHostName1}
-          awsDNSServer1=${pAdDomainControllerHostName2}
-
-          cp /etc/krb5.conf /etc/krb5.conf.bak
-          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/krb5.conf
-          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/krb5.conf
-          cat /etc/krb5.conf
-          cp /etc/sssd/sssd.conf /etc/sssd/sssd.conf.bak
-          sed -i 's/addcaws02p.amtrak.ad.nrpc/'"$awsDNSServer2"'/g' /etc/sssd/sssd.conf
-          sed -i 's/addcaws01p.amtrak.ad.nrpc/'"$awsDNSServer1"'/g' /etc/sssd/sssd.conf
-          echo "ad_server = $awsDNSServer1" >> /etc/sssd/sssd.conf
-          cat  /etc/sssd/sssd.conf
-
-          upper_host=`echo $host | tr '[[:lower:]]' '[[:upper:]]'`
-          echo $upper_host
-
-          # Perform domain join steps - complete
-
-          #Installing Sentinal agent
-
-          sentinal_key_name=/amtrak/cloud-solutions/azure/sentinal/workspace-key
-          sentinal_id_name=/amtrak/cloud-solutions/azure/sentinal/workspace-id
-          set +x
-          sentinal_key=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_key_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-          sentinal_id=`/usr/local/bin/aws secretsmanager get-secret-value --secret-id $sentinal_id_name --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text`
-
-          wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w $sentinal_id -s $sentinal_key
-          set -ex
-
-          /opt/microsoft/omsagent/bin/service_control restart $sentinal_id
-          /opt/microsoft/omsagent/bin/omsadmin.sh -l
-          #Installing Sentinal agent - Complete
-
-          #Installing AppDynamics agent
-          #aws s3 cp s3://amtappdynamics/appdynamics-machine-agent-4.5.15.2316.x86_64.rpm /tmp --region ${AWS::Region}
-          #aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.2.3210.x86_64.rpm /tmp --region ${AWS::Region}
-          /usr/local/bin/aws s3 cp s3://amtrak-cloud-automation-873043565046-us-east-1/agents/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm /tmp --region ${AWS::Region}
-          rpm -ivh /tmp/appdynamics-machine-agent-21.12.6.3236.x86_64.rpm
-          kinit -k $upper_host$
-          authconfig --enablesssdauth --enablesssd --enablemkhomedir --update
-          systemctl enable sssd.service
-          systemctl restart sssd.service
           systemctl restart sshd.service
           systemctl restart sshd
-          klist
           # Update etc/hosts
           fqdn_host_name=${pHostName2}
           #host_ip=$(hostname -i)
-          host_ip=$(wget -q -O- http://169.254.169.254/latest/meta-data/local-ipv4)
 
-          echo "$host_ip $host $fqdn_host_name $host" >> /etc/hosts
+
+          echo "$host $fqdn_host_name $host" >> /etc/hosts
 
           #update /etc/postfix/main.cf
           sed -i 's/= hostname/'"= $host"'/g' /etc/postfix/main.cf
@@ -1238,9 +1021,6 @@ Resources:
           # # Call cfn-init to perform other additional tasks realted appdynamics ageny
           cfn-init -v -c BootStrap --stack ${AWS::StackName} --resource rEc2Instance2 --region ${AWS::Region}
 
-
-          chkconfig appdynamics-machine-agent on
-          #Installing AppDynamics agent - Complete
           #Install Signal Fx for Production landscape only
           # if [ "$landscape" = "PROD" ]
           # then
@@ -1252,22 +1032,10 @@ Resources:
           # fi
 
           # Change instance role
-          aws_instance_id=`wget -q -O- http://169.254.169.254/latest/meta-data/instance-id`
-          instance_profile_association_id=`/usr/local/bin/aws ec2 describe-iam-instance-profile-associations \
-                        --filters Name=instance-id,Values=$aws_instance_id \
-                        --query IamInstanceProfileAssociations[0].AssociationId \
-                        --region ${AWS::Region} --output text`
+          # aws_instance_id=`wget -q -O- http://169.254.169.254/latest/meta-data/instance-id`
 
-          echo $instance_profile_association_id
-          /usr/local/bin/aws ec2 replace-iam-instance-profile-association \
-                      --iam-instance-profile Name=${pInstanceProfileArn} \
-                      --association-id $instance_profile_association_id \
-                      --region ${AWS::Region}
           dnf update -y 
           dnf install htop -y
-          param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
-          ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
-          sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
           
           dnf clean all
           EC2_REGION=${pAWSregion}
@@ -1291,15 +1059,15 @@ Resources:
           - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone1}}}'
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone1}}}'
           - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
           - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone3}}}'
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone3}}}'
 
       SecurityGroups:
         - !Ref rSecurityGroup
@@ -1343,7 +1111,7 @@ Resources:
         !If
           - IsLegacyEnterprise
           - !FindInMap [mEC2Map, !Ref pLandscape, VPCId]
-          - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/vpc}}'
+          - !Sub '{{resolve:ssm:/desamist/cloud-solutions/vpc}}'
       TargetGroupAttributes: 
               - 
                 Key: "stickiness.enabled"
@@ -1438,7 +1206,7 @@ Resources:
     Properties:
       LaunchTemplateName: !Sub ${pDepartment}-${pProject}-${pLandscape}-autoscaling-iwsconsole${pDBCluster}
       LaunchTemplateData:
-          ImageId: '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/ec2/rhel8/latest-ami-id}}'
+          ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
           InstanceType: !Ref pInstanceType
           SecurityGroupIds:
            - !Ref rSecurityGroup
@@ -1460,11 +1228,7 @@ Resources:
             chmod +x /usr/local/aws/bin/aws
             
             # Installing aws cli -complete
-            
-            # adding public key
-            param_path_ec2_user=/amtrak/io/zos/${pEnvironment}/ssh/ec2-user/pubkey
-            ec2_user_pub_key=$(aws secretsmanager get-secret-value --secret-id $param_path_ec2_user --version-stage AWSCURRENT --region ${AWS::Region} --query SecretString --output text)
-            sh -c "echo $ec2_user_pub_key >> /home/ec2-user/.ssh/authorized_keys"
+          
             
             dnf clean all
             EC2_REGION=${pAWSregion}
@@ -1480,15 +1244,15 @@ Resources:
         - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone1, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone1}}}'
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone1}}}'
         - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone2, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone2}}}'  ## change it us-east-1b
         - !If
               - IsLegacyEnterprise
               - !If [cIsNonProd, !FindInMap [mAzToNonProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId], !FindInMap [mAzToProdSubnetMap, !Ref pAvailabilityZone3, ELBSubNetId]]
-              - !Sub '{{resolve:ssm:/amtrak/cloud-solutions/service-catalog/elb/${pLandscape}/${pAvailabilityZone3}}}'
+              - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone3}}}'
      
       LaunchTemplate:
         LaunchTemplateId: !Ref rLaunchTemplate
@@ -1530,7 +1294,7 @@ Resources:
     Properties:
       DisplayName: EC2LaunchNotification
       Subscription:
-       - Endpoint: !Sub '{{resolve:ssm:/amtrak/io/zos/OperatorEmail}}'
+       - Endpoint: !Sub '{{resolve:ssm:/desamist/io/zos/OperatorEmail}}'
          Protocol: email
       Tags:
         - Key: Department
