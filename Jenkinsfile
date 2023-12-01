@@ -6,7 +6,7 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
         STACK_NAME = 'desamist-tech'  // Specify the CloudFormation stack name
-        TEMPLATE_FILE = 'develop/template.yml'  // Specify the CloudFormation template file
+        TEMPLATE_FILE = 'develops/cf-template.yaml'  // Specify the CloudFormation template file
       //  PARAMETER_FILE = 'parameters.json'  // Specify the CloudFormation parameter file
     }
 
