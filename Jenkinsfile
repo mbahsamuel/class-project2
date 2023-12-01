@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/mbahsamuel/io-infra-desamist.git'
+                git 'https://github.com/mbahsamuel/class-project2.git'
             }
         }
         stage('AWS STS Stage') {
