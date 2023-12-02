@@ -166,11 +166,6 @@ Parameters:
     Description: vpc id
     Default: /desamist/cloud-solutions/vpc
     Type: AWS::SSM::Parameter::Value<String>
-  # pInstanceProfileArn:
-  #     Description: Instance profile ARN
-  #     Type: AWS::SSM::Parameter::Value<String>
-  #     Default: /amtrak/io/zos/InstanceRole
-  #     ConstraintDescription: VPC ID where EC2 instance will be created.
   pDomainOUPath:
     Description: Active Directory Custom OU Path. If this is blank, ApplicationGroup/Landscpe hierarchy will be used
     Type: String
@@ -261,11 +256,6 @@ Resources:
           ToPort: 9444
           Description: "Allow  Traffic for  instance"
           CidrIp: 10.224.24.0/18
-        # - IpProtocol: tcp
-        #   FromPort: 9443
-        #   ToPort: 9444
-        #   Description: "Allow  Traffic for  instance"
-        #   CidrIp: 10.224.40.0/18
         - IpProtocol: tcp
           FromPort: 9443
           ToPort: 9444
@@ -316,13 +306,6 @@ Resources:
   rEc2Instance1:
     Type: AWS::EC2::Instance
     Metadata:
-      # AWS::CloudFormation::Authentication:
-      #   S3AccessCreds:
-      #     type: S3
-      #     roleName: cloudwatch-ssm-role
-      #     buckets:
-      #       - amtrak-cloud-automation-873043565046-us-east-1
-      #       - amtappdynamics
       AWS::CloudFormation::Init:
         configSets:
           BootStrap:       # configSet is used when cfn-init is called with -c option
@@ -392,121 +375,6 @@ Resources:
                   - ' --region '
                   - !Ref AWS::Region
                   - "\n"
-            # /opt/azure-arc.sh:
-            #   source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
-            #   authentication: S3AccessCreds
-        # install:
-        #   packages:
-        #    yum:
-        #       sssd-client: []
-        #       sssd: []
-        #       adcli: []
-        #       oddjob: []
-        #       oddjob-mkhomedir: []
-        #       krb5-workstation: []
-        #       samba: []
-        #       git: []
-        #   sources:
-        #       #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
-        #       /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
-
-
-        #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
-        # appdynamics:
-        #   files:
-        #     /etc/appdynamics/machine-agent/controller-info.xml:
-        #       content:
-        #         'Fn::Join':
-        #           - "\n"
-        #           - - "<controller-info>"
-        #             - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
-        #             - "   <controller-port>443</controller-port>"
-        #             - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
-        #             - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
-        #             - "   <tier-name>LINUX</tier-name>"
-        #             - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName1]
-        #             - "   <enable-orchestration>false</enable-orchestration>"
-        #             - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName1]
-        #             - "   <account-access-key>d951ead9a259</account-access-key>"
-        #             - "   <account-name>amtrak</account-name>"
-        #             - "   <sim-enabled>true</sim-enabled>"
-        #             - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
-        #             - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
-        #             - "</controller-info>"
-
-        #       mode: "000744"
-        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
-        #       content: !Sub |
-        #         <monitor>
-        #           <name>ProcessMonitor</name>
-        #           <type>managed</type>
-        #           <enabled>true</enabled>
-        #           <description>Processes monitor</description>
-        #           <monitor-configuration></monitor-configuration>
-        #           <monitor-run-task>
-        #               <name>Processes Monitor Run Task</name>
-        #               <display-name>Processes Monitor Task</display-name>
-        #               <description>Processes Monitor Task</description>
-        #               <type>java</type>
-        #               <execution-style>periodic</execution-style>
-        #               <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
-        #               <execution-timeout-in-secs>60</execution-timeout-in-secs>
-        #               <task-arguments>
-        #                   <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
-        #               </task-arguments>
-        #               <java-task>
-        #                   <classpath>process-monitoring-extension.jar</classpath>
-        #                   <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
-        #               </java-task>
-        #           </monitor-run-task>
-        #         </monitor>
-        #       mode: "000744"
-        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
-        #       content: !Sub |
-        #         # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
-        #         # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
-        #         # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
-        #         displayByPid: false
-
-        #         # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
-        #         #Example Linux: java,bash,sshd
-        #         #Example Windows: java.exe,chrome.exe
-        #         # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
-
-        #         includeProcesses: []
-        #         excludeProcesses: []
-
-        #         # Processes with an aggregated absolute memory consumption of LESS than this number
-        #         # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
-        #         memoryThreshold: 5
-
-        #         # ONLY for OS - WINDOWS
-        #         # csv.xsl file path - leave null for default location,
-        #         # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
-        #         # OR C:/Windows/System32/csv.xsl (32 bit)
-        #         csvFilePath: ""
-
-        #         # this is the path to the file .monitored-processes
-        #         monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
-
-        #         metricPrefix: "Custom Metrics|"
-        #       mode: "000744"
-        #   commands:
-        #     command-1:
-        #       command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
-        #     command-2:
-        #       command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
-        #     command-3:
-        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
-        #     command-4:
-        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-        #     command-5:
-        #       command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
-        #   services:
-        #     sysvinit:
-        #       appdynamics-machine-agent:
-        #         enabled: "true"
-        #         ensureRunning: "true"
     CreationPolicy:
       ResourceSignal:
         Count: 1
@@ -515,16 +383,8 @@ Resources:
       InstanceType: !Ref pInstanceType
       SecurityGroupIds:
         - !Ref rSecurityGroup
-        # !If
-        #   - IsLegacyEnterprise
-        #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
-        #   - - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ]
       KeyName: !Ref pKeyName
       ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
-      #Commented the CPUOptions for demo purposes
-      # CpuOptions:
-      #   CoreCount: 4
-      #   ThreadsPerCore: 2
       IamInstanceProfile: cloudwatch-ssm-role
       EbsOptimized: True
       DisableApiTermination: false
@@ -684,13 +544,6 @@ Resources:
   rEc2Instance2:
     Type: AWS::EC2::Instance
     Metadata:
-      # AWS::CloudFormation::Authentication:
-      #   S3AccessCreds:
-      #     type: S3
-      #     roleName: cloudwatch-ssm-role
-      #     buckets:
-      #       - amtrak-cloud-automation-873043565046-us-east-1
-      #       - amtappdynamics
       AWS::CloudFormation::Init:
         configSets:
           BootStrap:       # configSet is used when cfn-init is called with -c option
@@ -760,121 +613,6 @@ Resources:
                   - ' --region '
                   - !Ref AWS::Region
                   - "\n"
-            # /opt/azure-arc.sh:
-            #   source: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/azure-arc.sh"
-            #   authentication: S3AccessCreds
-        # install:
-        #   packages:
-        #    yum:
-        #       sssd-client: []
-        #       sssd: []
-        #       adcli: []
-        #       oddjob: []
-        #       oddjob-mkhomedir: []
-        #       krb5-workstation: []
-        #       samba: []
-        #       git: []
-        #   sources:
-        #       #/opt/appdynamics/machine-agent/monitors: "https://amtappdynamics.s3.amazonaws.com/processmonitor-1.5.3.zip"
-        #       /opt/appdynamics/machine-agent/monitors: "https://amtrak-cloud-automation-873043565046-us-east-1.s3.amazonaws.com/agents/processmonitor-1.5.3.zip"
-
-
-        # #!If [NonProd, 'AWS-NONPROD', 'AWS-PROD']
-        # appdynamics:
-        #   files:
-        #     /etc/appdynamics/machine-agent/controller-info.xml:
-        #       content:
-        #         'Fn::Join':
-        #           - "\n"
-        #           - - "<controller-info>"
-        #             - "   <controller-host>amtrak.saas.appdynamics.com</controller-host>"
-        #             - "   <controller-port>443</controller-port>"
-        #             - "   <controller-ssl-enabled>true</controller-ssl-enabled>"
-        #             - !Sub ["   <application-name>AWS-${appEnv}</application-name>", appEnv: !Ref pLandscape]
-        #             - "   <tier-name>LINUX</tier-name>"
-        #             - !Sub ["   <node-name>${hostname}</node-name>", hostname: !Ref pHostName2]
-        #             - "   <enable-orchestration>false</enable-orchestration>"
-        #             - !Sub ["   <unique-host-id>${hostname}</unique-host-id>", hostname: !Ref pHostName2]
-        #             - "   <account-access-key>d951ead9a259</account-access-key>"
-        #             - "   <account-name>amtrak</account-name>"
-        #             - "   <sim-enabled>true</sim-enabled>"
-        #             - !Sub ["   <machine-path>AWS-${appEnv}|</machine-path>", appEnv: !Ref pLandscape]
-        #             - "   <dotnet-compatibility-mode>false</dotnet-compatibility-mode>"
-        #             - "</controller-info>"
-
-        #       mode: "000744"
-        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/monitor.xml:
-        #       content: !Sub |
-        #         <monitor>
-        #           <name>ProcessMonitor</name>
-        #           <type>managed</type>
-        #           <enabled>true</enabled>
-        #           <description>Processes monitor</description>
-        #           <monitor-configuration></monitor-configuration>
-        #           <monitor-run-task>
-        #               <name>Processes Monitor Run Task</name>
-        #               <display-name>Processes Monitor Task</display-name>
-        #               <description>Processes Monitor Task</description>
-        #               <type>java</type>
-        #               <execution-style>periodic</execution-style>
-        #               <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
-        #               <execution-timeout-in-secs>60</execution-timeout-in-secs>
-        #               <task-arguments>
-        #                   <argument name="config-file" is-required="true" default-value="/opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml"/>
-        #               </task-arguments>
-        #               <java-task>
-        #                   <classpath>process-monitoring-extension.jar</classpath>
-        #                   <impl-class>com.appdynamics.extensions.process.ProcessMonitor</impl-class>
-        #               </java-task>
-        #           </monitor-run-task>
-        #         </monitor>
-        #       mode: "000744"
-        #     /opt/appdynamics/machine-agent/monitors/ProcessMonitor/config.yml:
-        #       content: !Sub |
-        #         # Option to view process metrics in MetricBrowser per PID OR as aggregated over all the processes with same name.
-        #         # If false, all the processes with same name are grouped and collective metrics are reported to AppDynamics Metric Browser.
-        #         # If true, each process with PID can be viewed but since PID changes with process restart, this might not be the best option.
-        #         displayByPid: false
-
-        #         # comma-separated names of processes you want to include and exclude respectively in the reported metrics.
-        #         #Example Linux: java,bash,sshd
-        #         #Example Windows: java.exe,chrome.exe
-        #         # includeProcesses: If empty, all processes are monitored. If not empty, only those specified are monitored excluding others.
-
-        #         includeProcesses: []
-        #         excludeProcesses: []
-
-        #         # Processes with an aggregated absolute memory consumption of LESS than this number
-        #         # in Megabytes will be filtered out of the reported metrics. Default value is 100 [MB]
-        #         memoryThreshold: 5
-
-        #         # ONLY for OS - WINDOWS
-        #         # csv.xsl file path - leave null for default location,
-        #         # i.e. C:/Windows/SysWOW64/csv.xsl OR C:\\Windows\\SysWOW64\\webem\\en-US\\csv.xsl (for 64bit)
-        #         # OR C:/Windows/System32/csv.xsl (32 bit)
-        #         csvFilePath: ""
-
-        #         # this is the path to the file .monitored-processes
-        #         monitoredProcessFilePath: "monitors/ProcessMonitor/.monitored-processes"
-
-        #         metricPrefix: "Custom Metrics|"
-        #       mode: "000744"
-        #   commands:
-        #     command-1:
-        #       command: rm -f /opt/appdynamics/machine-agent/conf/controller-info.xml && rm -f /etc/appdynamics/machine-agent/controller-info.xml.bak
-        #     command-2:
-        #       command: cd /etc/appdynamics/machine-agent/ && cp controller-info.xml /opt/appdynamics/machine-agent/conf/controller-info.xml && ln -sf /opt/appdynamics/machine-agent/conf/controller-info.xml controller-info.xml
-        #     command-3:
-        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
-        #     command-4:
-        #       command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-        #     command-5:
-        #       command: cd /opt && chmod +x ./azure-arc.sh && ./azure-arc.sh !Ref pLandscape
-        #   services:
-        #     sysvinit:
-        #       appdynamics-machine-agent:
-        #         enabled: "true"
-        #         ensureRunning: "true"
     CreationPolicy:
       ResourceSignal:
         Count: 1
@@ -1210,7 +948,6 @@ Resources:
           InstanceType: !Ref pInstanceType
           SecurityGroupIds:
            - !Ref rSecurityGroup
-          #  - !FindInMap [ mEC2MapMulti, !Ref pLandscape, SecurityGroupID ] 
           UserData: !Base64 |
             #!/bin/bash
             
@@ -1278,7 +1015,6 @@ Resources:
         - !Ref rEC2TargetGroup
       Tags:
         - Key: Name
-          #Value: !Join ['', [!Ref pDepartment, '-',!Ref pProject, '-',iwsconsole,!Ref pDBCluster]]
           Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}
           PropagateAtLaunch: false
         - Key: Department
@@ -1310,12 +1046,6 @@ Resources:
       PolicyType: SimpleScaling
       ScalingAdjustment: 1
       Cooldown: '300'
-      # Tags:
-      #   - Key: Department
-      #     Value: !Ref pDepartment
-      #   - Key: Project
-      #     Value: !Ref pProject
-
   rCPUUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1332,13 +1062,7 @@ Resources:
         - !Ref rAutoScalingSNSTopic
       Dimensions: 
         - Name: AutoScalingGropuName
-          Value: !Ref rAutoScalingGroup
-      # Tags:
-      #   - Key: Department
-      #     Value: !Ref pDepartment
-      #   - Key: Project
-      #     Value: !Ref pProject
-  
+          Value: !Ref rAutoScalingGroup 
   rMemoryUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1356,11 +1080,6 @@ Resources:
       Dimensions: 
         - Name: AutoScalingGropuName
           Value: !Ref rAutoScalingGroup
-      # Tags:
-      #   - Key: Department
-      #     Value: !Ref pDepartment
-      #   - Key: Project
-      #     Value: !Ref pProject
 Outputs:
   CloudFormationLogs:
     Description: CloudFormation CloudFormationLogs 
