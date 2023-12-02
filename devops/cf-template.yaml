@@ -260,8 +260,8 @@ Resources:
           FromPort: 9443
           ToPort: 9444
           Description: "Allow  Traffic for  instance"
-          CidrIp: 10.0.0.0/8
-        - IpProtocol: tcp
+          CidrIp: 10.0.0.0/0
+        - IpProtocol: ssh
           FromPort: 22
           ToPort: 22
           Description: Allow ssh access
