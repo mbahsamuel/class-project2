@@ -10,6 +10,10 @@ Parameters:
     Description: Application Sub Group
     Type: AWS::SSM::Parameter::Value<String>
     Default: /dsm/io/zos/ApplicationSubGroup
+  pSecurityGroup:
+    Description: Application Sub Group
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /dsm/io/zos/SecurityGroup
   pProject:
     Type:  String
     Description: Project Identifier.
@@ -234,75 +238,75 @@ Mappings:
       SharedServices:
         SecurityGroupID: sg-0556b0be39af3f13f
 Resources:
-  rSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
-      GroupDescription: zos APP Security Group
-      VpcId: !Ref pVPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 50100
-          ToPort: 50101
-          Description: "Allow  Traffic for  instance"
-          CidrIp: 10.224.64.0/18
-        - IpProtocol: tcp
-          FromPort: 9443
-          ToPort: 9444
-          Description: "Allow  Traffic for  instance"
-          CidrIp: 10.224.8.0/18
-        - IpProtocol: tcp
-          FromPort: 9443
-          ToPort: 9444
-          Description: "Allow  Traffic for  instance"
-          CidrIp: 10.224.24.0/18
-        - IpProtocol: tcp
-          FromPort: 9443
-          ToPort: 9444
-          Description: "Allow  Traffic for  instance"
-          CidrIp: 10.0.0.0/0
-        - IpProtocol: ssh
-          FromPort: 22
-          ToPort: 22
-          Description: Allow ssh access
-          CidrIp: 10.0.0.0/8
-        - IpProtocol: '-1'
-          CidrIp: 172.16.0.0/12
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          Description: Allow for ping
-          CidrIp: 10.0.0.0/8
-      SecurityGroupEgress:
-        - IpProtocol: '-1'
-          CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: ApplicationGroup
-          Value: !Ref pApplicationGroup
-        - Key: ApplicationSubGroup
-          Value: !Ref pApplicationSubGroup
-        - Key: Project
-          Value: !Ref pProject
-        - Key: CostCenter
-          Value: !Ref pCostCenter
-        - Key: FundingSource
-          Value: !Ref pFundingSource
-        - Key: Landscape
-          Value: !Ref pLandscape
-        - Key: ITDR
-          Value: !Ref pITDR
-        - Key: WBSE
-          Value: !Ref pWBSE
-        - Key: Department
-          Value: !Ref pDepartment
-        - Key: Name
-          Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
-        - Key: aws-migration-project-id
-          Value: !Ref pawsmigrationprojectid
-        - Key: map-migrated
-          Value: !Ref pmapmigrated
-        - Key: !Sub ${pDepartment}-${pProject}aws:cloudformation:stack-name"
-          Value: !Ref "AWS::StackName"
+  # rSecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupName: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
+  #     GroupDescription: zos APP Security Group
+  #     VpcId: !Ref pVPC
+  #     SecurityGroupIngress:
+  #       - IpProtocol: tcp
+  #         FromPort: 50100
+  #         ToPort: 50101
+  #         Description: "Allow  Traffic for  instance"
+  #         CidrIp: 10.224.64.0/18
+  #       - IpProtocol: tcp
+  #         FromPort: 9443
+  #         ToPort: 9444
+  #         Description: "Allow  Traffic for  instance"
+  #         CidrIp: 10.224.8.0/18
+  #       - IpProtocol: tcp
+  #         FromPort: 9443
+  #         ToPort: 9444
+  #         Description: "Allow  Traffic for  instance"
+  #         CidrIp: 10.224.24.0/18
+  #       - IpProtocol: tcp
+  #         FromPort: 9443
+  #         ToPort: 9444
+  #         Description: "Allow  Traffic for  instance"
+  #         CidrIp: 10.0.0.0/8
+  #       - IpProtocol: tcp
+  #         FromPort: 22
+  #         ToPort: 22
+  #         Description: Allow ssh access
+  #         CidrIp: 10.0.0.0/8
+  #       - IpProtocol: '-1'
+  #         CidrIp: 172.16.0.0/12
+  #       - IpProtocol: icmp
+  #         FromPort: -1
+  #         ToPort: -1
+  #         Description: Allow for ping
+  #         CidrIp: 10.0.0.0/8
+  #     SecurityGroupEgress:
+  #       - IpProtocol: '-1'
+  #         CidrIp: 0.0.0.0/0
+  #     Tags:
+  #       - Key: ApplicationGroup
+  #         Value: !Ref pApplicationGroup
+  #       - Key: ApplicationSubGroup
+  #         Value: !Ref pApplicationSubGroup
+  #       - Key: Project
+  #         Value: !Ref pProject
+  #       - Key: CostCenter
+  #         Value: !Ref pCostCenter
+  #       - Key: FundingSource
+  #         Value: !Ref pFundingSource
+  #       - Key: Landscape
+  #         Value: !Ref pLandscape
+  #       - Key: ITDR
+  #         Value: !Ref pITDR
+  #       - Key: WBSE
+  #         Value: !Ref pWBSE
+  #       - Key: Department
+  #         Value: !Ref pDepartment
+  #       - Key: Name
+  #         Value: !Sub ${pDepartment}-${pProject}-${pLandscape}-iwsconsole${pDBCluster}-SG
+  #       - Key: aws-migration-project-id
+  #         Value: !Ref pawsmigrationprojectid
+  #       - Key: map-migrated
+  #         Value: !Ref pmapmigrated
+  #       - Key: !Sub ${pDepartment}-${pProject}aws:cloudformation:stack-name"
+  #         Value: !Ref "AWS::StackName"
   rEc2Instance1:
     Type: AWS::EC2::Instance
     Metadata:
@@ -382,7 +386,7 @@ Resources:
     Properties:
       InstanceType: !Ref pInstanceType
       SecurityGroupIds:
-        - !Ref rSecurityGroup
+        - !Ref pSecurityGroup
       KeyName: !Ref pKeyName
       ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
       IamInstanceProfile: cloudwatch-ssm-role
@@ -620,7 +624,7 @@ Resources:
     Properties:
       InstanceType: !Ref pInstanceType
       SecurityGroupIds:
-        - !Ref rSecurityGroup
+        - !Ref pSecurityGroup
         # !If
         #   - IsLegacyEnterprise
         #   - - !FindInMap [ mEC2Map, !Ref pLandscape, ELBSecurityGroupID ]
@@ -808,7 +812,7 @@ Resources:
               - !Sub '{{resolve:ssm:/desamist/cloud-solutions/service-catalog/ec2/${pLandscape}/${pAvailabilityZone3}}}'
 
       SecurityGroups:
-        - !Ref rSecurityGroup
+        - !Ref pSecurityGroup
       Tags:
         - Key: ApplicationGroup
           Value: !Ref pApplicationGroup
@@ -947,7 +951,7 @@ Resources:
           ImageId: '{{resolve:ssm:/desamist/cloud-solutions/rhel9/AMI}}'
           InstanceType: !Ref pInstanceType
           SecurityGroupIds:
-           - !Ref rSecurityGroup
+           - !Ref pSecurityGroup
           UserData: !Base64 |
             #!/bin/bash
             
