@@ -998,9 +998,9 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref rLaunchTemplate
         Version: !GetAtt rLaunchTemplate.LatestVersionNumber
-      MinSize: '1'
+      MinSize: '0'
       MaxSize: '1'
-      DesiredCapacity: '1'
+      DesiredCapacity: '0'
       HealthCheckType: EC2
       HealthCheckGracePeriod: 300
       NotificationConfigurations:
@@ -1050,12 +1050,12 @@ Resources:
       PolicyType: SimpleScaling
       ScalingAdjustment: 1
       Cooldown: '300'
-  rCPUUtilizationAlarm:
+  rCPUUtilizationAlarm1:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub ${pDepartment}-${pProject}-CPUUtilizationAlarm-iwsconsole${pDBCluster}
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 1 
+      EvaluationPeriods: 2 
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Period: '60'
@@ -1065,14 +1065,31 @@ Resources:
         - !Ref rAutoScalingGroupScaleUpPolicy
         - !Ref rAutoScalingSNSTopic
       Dimensions: 
-        - Name: AutoScalingGropuName
-          Value: !Ref rAutoScalingGroup 
+        - Name: ec2instance
+          Value: !Ref rEc2Instance1 
+  rCPUUtilizationAlarm2:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pDepartment}-${pProject}-CPUUtilizationAlarm-iwsconsole${pDBCluster}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 2 
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: '60'
+      Statistic: Average
+      Threshold: 80  # Scale up when CPU utilization is 80% or more
+      AlarmActions:
+        - !Ref rAutoScalingGroupScaleUpPolicy
+        - !Ref rAutoScalingSNSTopic
+      Dimensions: 
+        - Name: ec2instance
+          Value: !Ref rEc2Instance2 
   rMemoryUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub ${pDepartment}-${pProject}-MemoryUtilizationAlarm-iwsconsole${pDBCluster}
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: '1' 
+      EvaluationPeriods: '2' 
       MetricName: MemoryUtilization
       Namespace: System/Linux
       Period: '60'
@@ -1082,8 +1099,25 @@ Resources:
         - !Ref rAutoScalingGroupScaleUpPolicy
         - !Ref rAutoScalingSNSTopic
       Dimensions: 
-        - Name: AutoScalingGropuName
-          Value: !Ref rAutoScalingGroup
+        - Name: ec2instance
+          Value: !Ref rEc2Instance1
+  rMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${pDepartment}-${pProject}-MemoryUtilizationAlarm-iwsconsole${pDBCluster}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: '2' 
+      MetricName: MemoryUtilization
+      Namespace: System/Linux
+      Period: '60'
+      Statistic: Average
+      Threshold: 80  # Scale up when MemoryUtilization is 70% or more
+      AlarmActions:
+        - !Ref rAutoScalingGroupScaleUpPolicy
+        - !Ref rAutoScalingSNSTopic
+      Dimensions: 
+        - Name: ec2instance
+          Value: !Ref rEc2Instance2
 Outputs:
   CloudFormationLogs:
     Description: CloudFormation CloudFormationLogs 
